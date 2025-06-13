@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd build && make && ./CppRectangleRecognition
+./b || exit 1
 
 # Show both input and output files if they exist
 echo ""

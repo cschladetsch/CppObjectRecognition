@@ -5,27 +5,31 @@
 class ImageProcessorTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Create a simple test PBM file
-        createTestPBMFile("test_input.pbm", 8, 6);
+        // Create a simple test PGM file
+        createTestPGMFile("test_input.pgm", 8, 6);
     }
     
     void TearDown() override {
-        std::remove("test_input.pbm");
-        std::remove("test_output.pbm");
+        std::remove("test_input.pgm");
+        std::remove("test_output.pgm");
     }
     
-    void createTestPBMFile(const std::string& filename, int width, int height) {
+    void createTestPGMFile(const std::string& filename, int width, int height) {
         std::ofstream file(filename, std::ios::binary);
-        file << "P4\n" << width << " " << height << "\n";
+        file << "P5\n" << width << " " << height << "\n255\n";
         
-        // Create a simple pattern: alternating black/white pixels
-        unsigned char data[] = {0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA};
-        file.write((char*)data, 6);
+        // Create a simple pattern with greyscale values
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                unsigned char pixel = ((x + y) % 2 == 0) ? 255 : 0;
+                file.write((char*)&pixel, 1);
+            }
+        }
     }
 };
 
-TEST_F(ImageProcessorTest, LoadsPBMImageCorrectly) {
-    Image image = ImageProcessor::loadPBMImage("test_input.pbm");
+TEST_F(ImageProcessorTest, LoadsPGMImageCorrectly) {
+    Image image = ImageProcessor::loadPGMImage("test_input.pgm");
     
     EXPECT_EQ(image.width, 8);
     EXPECT_EQ(image.height, 6);
@@ -33,26 +37,29 @@ TEST_F(ImageProcessorTest, LoadsPBMImageCorrectly) {
     EXPECT_EQ(image.pixels[0].size(), 8);
 }
 
-TEST_F(ImageProcessorTest, SavesPBMImageCorrectly) {
+TEST_F(ImageProcessorTest, SavesPGMImageCorrectly) {
     Image testImage(4, 4);
     
     for (int y = 0; y < 4; ++y) {
         for (int x = 0; x < 4; ++x) {
-            testImage.pixels[y][x] = (x + y) % 2 == 0 ? 255 : 0;
+            testImage.pixels[y][x] = (x + y) % 2 == 0 ? 255 : 128;
         }
     }
     
-    ImageProcessor::savePBMImage(testImage, "test_output.pbm");
+    ImageProcessor::savePGMImage(testImage, "test_output.pgm");
     
-    std::ifstream file("test_output.pbm", std::ios::binary);
+    std::ifstream file("test_output.pgm", std::ios::binary);
     EXPECT_TRUE(file.is_open());
     
     std::string line;
     std::getline(file, line);
-    EXPECT_EQ(line, "P4");
+    EXPECT_EQ(line, "P5");
     
     std::getline(file, line);
     EXPECT_EQ(line, "4 4");
+    
+    std::getline(file, line);
+    EXPECT_EQ(line, "255");
 }
 
 TEST_F(ImageProcessorTest, AppliesThresholdCorrectly) {
@@ -108,22 +115,26 @@ TEST_F(ImageProcessorTest, DrawsRectanglesOnImage) {
     
     for (int y = 0; y < 50; ++y) {
         for (int x = 0; x < 50; ++x) {
-            testImage.pixels[y][x] = 255;
+            testImage.pixels[y][x] = 0;  // Black background
         }
     }
     
     std::vector<Rectangle> rectangles;
     Rectangle rect;
-    rect.corners = {Point(10, 10), Point(20, 10), Point(20, 20), Point(10, 20)};
+    rect.center = Point(15, 15);
+    rect.width = 10;
+    rect.height = 10;
+    rect.angle = 0.0;
     rectangles.push_back(rect);
     
     ImageProcessor::drawRectangles(testImage, rectangles);
     
     // Check that some pixels were modified to draw the rectangle outline
+    // Since we started with black background (0), drawing should change pixels to white (255)
     bool hasDrawnPixels = false;
     for (int y = 0; y < 50; ++y) {
         for (int x = 0; x < 50; ++x) {
-            if (testImage.pixels[y][x] == 128) {
+            if (testImage.pixels[y][x] == 255) {
                 hasDrawnPixels = true;
                 break;
             }

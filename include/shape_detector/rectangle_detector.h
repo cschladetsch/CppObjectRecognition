@@ -11,8 +11,7 @@ struct Point {
 struct Rectangle {
     Point center;
     int width, height;
-    float angle;
-    std::vector<Point> corners;
+    double angle;  // angle in degrees
 };
 
 struct Image {
@@ -55,6 +54,10 @@ private:
     bool isValidQuadrilateral(const std::vector<Point>& quad);
     std::vector<Point> extractBoundary(const std::vector<Point>& region, const Image& image);
     std::vector<Point> sortBoundaryPoints(const std::vector<Point>& boundary);
+    std::vector<Point> cleanupCorners(const std::vector<Point>& corners);
+    std::vector<Point> selectBestCorners(const std::vector<Point>& corners);
+    double calculateCornerAngle(const Point& prev, const Point& current, const Point& next);
+    Point calculateContourCentroid(const std::vector<Point>& contour);
 };
 
 #endif // RECTANGLE_DETECTOR_H

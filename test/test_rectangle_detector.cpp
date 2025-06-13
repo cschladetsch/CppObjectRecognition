@@ -6,9 +6,9 @@ class RectangleDetectorTest : public ::testing::Test {
 protected:
     void SetUp() override {
         detector = new RectangleDetector();
-        detector->setMinArea(50.0);
-        detector->setMaxArea(5000.0);
-        detector->setApproxEpsilon(0.02);
+        detector->setMinArea(400.0);  // Same as main.cpp
+        detector->setMaxArea(8000.0); // Same as main.cpp
+        detector->setApproxEpsilon(0.08);  // Same as main.cpp
     }
     
     void TearDown() override {
@@ -39,12 +39,34 @@ TEST_F(RectangleDetectorTest, DetectsSingleRectangle) {
 }
 
 TEST_F(RectangleDetectorTest, DetectsMultipleRectangles) {
-    Image testImage = ImageProcessor::createTestImage(200, 150);
+    // Create a test image with two clear rectangles
+    Image testImage(200, 150);
+    
+    // Fill with black background
+    for (int y = 0; y < 150; ++y) {
+        for (int x = 0; x < 200; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    // First rectangle (30x25)
+    for (int y = 20; y < 45; ++y) {
+        for (int x = 30; x < 60; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
+    
+    // Second rectangle (35x30)
+    for (int y = 80; y < 110; ++y) {
+        for (int x = 120; x < 155; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
     
     std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
     
     EXPECT_GE(rectangles.size(), 1);
-    EXPECT_LE(rectangles.size(), 3);
+    EXPECT_LE(rectangles.size(), 2);
 }
 
 TEST_F(RectangleDetectorTest, NoRectanglesInEmptyImage) {

@@ -47,15 +47,13 @@ TEST_F(GeometryTest, RectangleHasCorrectFields) {
     rect.center = Point(50, 50);
     rect.width = 100;
     rect.height = 80;
-    rect.angle = 45.0f;
-    rect.corners = {Point(0, 0), Point(100, 0), Point(100, 80), Point(0, 80)};
+    rect.angle = 45.0;
     
     EXPECT_EQ(rect.center.x, 50);
     EXPECT_EQ(rect.center.y, 50);
     EXPECT_EQ(rect.width, 100);
     EXPECT_EQ(rect.height, 80);
-    EXPECT_FLOAT_EQ(rect.angle, 45.0f);
-    EXPECT_EQ(rect.corners.size(), 4);
+    EXPECT_DOUBLE_EQ(rect.angle, 45.0);
 }
 
 TEST_F(GeometryTest, DetectorSettingsWork) {

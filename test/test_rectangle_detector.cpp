@@ -1,0 +1,106 @@
+#include <gtest/gtest.h>
+#include "shape_detector/rectangle_detector.h"
+#include "shape_detector/image_processor.h"
+
+class RectangleDetectorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        detector = new RectangleDetector();
+        detector->setMinArea(50.0);
+        detector->setMaxArea(5000.0);
+        detector->setApproxEpsilon(0.02);
+    }
+    
+    void TearDown() override {
+        delete detector;
+    }
+    
+    RectangleDetector* detector;
+};
+
+TEST_F(RectangleDetectorTest, DetectsSingleRectangle) {
+    Image testImage(100, 100);
+    
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    for (int y = 20; y < 60; ++y) {
+        for (int x = 30; x < 70; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
+    
+    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    
+    EXPECT_GE(rectangles.size(), 1);
+}
+
+TEST_F(RectangleDetectorTest, DetectsMultipleRectangles) {
+    Image testImage = ImageProcessor::createTestImage(200, 150);
+    
+    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    
+    EXPECT_GE(rectangles.size(), 1);
+    EXPECT_LE(rectangles.size(), 3);
+}
+
+TEST_F(RectangleDetectorTest, NoRectanglesInEmptyImage) {
+    Image testImage(100, 100);
+    
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    
+    EXPECT_EQ(rectangles.size(), 0);
+}
+
+TEST_F(RectangleDetectorTest, FiltersByMinArea) {
+    detector->setMinArea(2000.0);
+    
+    Image testImage(100, 100);
+    
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    for (int y = 40; y < 50; ++y) {
+        for (int x = 40; x < 50; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
+    
+    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    
+    EXPECT_EQ(rectangles.size(), 0);
+}
+
+TEST_F(RectangleDetectorTest, FiltersByMaxArea) {
+    detector->setMaxArea(50.0);
+    
+    Image testImage(100, 100);
+    
+    for (int y = 0; y < 100; ++y) {
+        for (int x = 0; x < 100; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    for (int y = 10; y < 90; ++y) {
+        for (int x = 10; x < 90; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
+    
+    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    
+    EXPECT_EQ(rectangles.size(), 0);
+}

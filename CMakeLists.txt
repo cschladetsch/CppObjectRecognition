@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(CppRectangleRecognition)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include_directories(include)
+
+file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+# GTest configuration
+if(EXISTS "${CMAKE_SOURCE_DIR}/test")
+    enable_testing()
+    
+    # Find GTest
+    find_package(GTest QUIET)
+    
+    if(NOT GTest_FOUND)
+        # Download and build GTest
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/03597a01ee50f33f9142a332f1e5e4bd3d71e787.zip
+        )
+        # For Windows: Prevent overriding the parent project's compiler/linker settings
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
+    
+    # Create test executable
+    file(GLOB_RECURSE TEST_SOURCES "test/*.cpp")
+    if(TEST_SOURCES)
+        # Remove main.cpp from library sources for tests
+        set(LIB_SOURCES ${SOURCES})
+        list(REMOVE_ITEM LIB_SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp")
+        
+        add_executable(tests ${TEST_SOURCES} ${LIB_SOURCES})
+        
+        if(GTest_FOUND)
+            target_link_libraries(tests GTest::gtest GTest::gtest_main)
+        else()
+            target_link_libraries(tests gtest gtest_main)
+        endif()
+        
+        include(GoogleTest)
+        gtest_discover_tests(tests)
+    endif()
+endif()

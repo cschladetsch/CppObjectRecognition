@@ -5,12 +5,23 @@ project(CppRectangleRecognition)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find OpenMP for parallelization
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 include_directories(include)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+# Link OpenMP if found
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
+endif()
 
 # GTest configuration
 if(EXISTS "${CMAKE_SOURCE_DIR}/test")
@@ -44,6 +55,11 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/test")
             target_link_libraries(tests GTest::gtest GTest::gtest_main)
         else()
             target_link_libraries(tests gtest gtest_main)
+        endif()
+        
+        # Link OpenMP to tests if found
+        if(OpenMP_CXX_FOUND)
+            target_link_libraries(tests OpenMP::OpenMP_CXX)
         endif()
         
         include(GoogleTest)

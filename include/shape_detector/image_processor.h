@@ -1,5 +1,4 @@
-#ifndef IMAGE_PROCESSOR_H
-#define IMAGE_PROCESSOR_H
+#pragma once
 
 #include "rectangle_detector.h"
 #include <string>
@@ -42,4 +41,3 @@ private:
     static void drawColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color);
 };
 
-#endif // IMAGE_PROCESSOR_H

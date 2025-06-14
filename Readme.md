@@ -2,6 +2,10 @@
 
 A C++ computer vision application that detects rectangles in images using custom image processing algorithms.
 
+## Demo
+
+![Demo](resources/Demo.png)
+
 ## Features
 
 - Custom rectangle detection algorithm

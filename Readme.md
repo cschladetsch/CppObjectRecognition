@@ -45,11 +45,18 @@ CppFacialRegognition/
 
 ### Build Instructions
 
+Use scripts:
+
 ```bash
-mkdir build
-cd build
-cmake ..
-make
+$ ./b # just build the project and test
+$ ./r # calls b then runs  the app
+$ ./v # calls r then opens the result using explorer or equivalent on current platform
+```
+
+Or manually:
+
+```bash
+$ mkdir build && cd build && cmake .. && make
 ```
 
 ### Running
@@ -110,4 +117,4 @@ The application generates:
 
 ## License
 
-This project is licensed under the terms specified in the LICENSE file.
+This project is licensed under the MIT Licence. See the LICENSE file.

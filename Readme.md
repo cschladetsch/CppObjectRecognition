@@ -2,6 +2,8 @@
 
 A C++ computer vision application that detects rectangles in images using custom image processing algorithms.
 
+Does not use any libraries, just naked C++.
+
 ## Demo
 
 ![Demo](resources/Demo.png)
@@ -14,6 +16,7 @@ A C++ computer vision application that detects rectangles in images using custom
 - Test image generation with random rectangles
 - Rectangle visualization with color coding
 - Cross-platform support (Linux, WSL)
+- Uses no external libraries
 
 ## Project Structure
 

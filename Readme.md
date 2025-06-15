@@ -2,7 +2,9 @@
 
 A C++ computer vision application that detects rectangles in images using custom image processing algorithms with comprehensive visual testing capabilities.
 
-Does not use any libraries, just naked C++.
+Optimised via algorithms and OMP.
+
+*Does not use any libraries*, just naked C++.
 
 ## Demo
 

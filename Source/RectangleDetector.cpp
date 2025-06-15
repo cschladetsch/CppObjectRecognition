@@ -4,13 +4,12 @@
 #include <iostream>
 #include <queue>
 #include <omp.h>
-
-constexpr double PI = 3.14159265358979323846;
+#include <numbers>
 constexpr double MIN_DISTANCE_SQUARED = 1.0;
 constexpr double MIN_DISTANCE_SQUARED_LARGE = 64.0;
 
 RectangleDetector::RectangleDetector() 
-    : minArea_(500.0), maxArea_(10000.0), approxEpsilon_(0.05) {}
+    : minArea_(500.0), maxArea_(10000.0), approxEpsilon_(0.02) {}
 
 RectangleDetector::~RectangleDetector() {}
 
@@ -141,11 +140,55 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     std::vector<Point> approx = ApproximateContour(contour, approxEpsilon_);
     
-    // Allow 4 to 6 points (rotated rectangles might have extra vertices)
-    if (approx.size() < 4 || approx.size() > 6) return false;
+    // First check: must have exactly 4 vertices for a rectangle
+    if (approx.size() != 4) {
+        // Allow 5-6 vertices for slightly imperfect rectangles
+        if (approx.size() < 4 || approx.size() > 6) return false;
+        
+        // If we have 5-6 vertices, try to find the best 4 corners
+        if (approx.size() > 4) {
+            auto corners = SelectBestCorners(approx);
+            approx = std::vector<Point>(corners.begin(), corners.end());
+            if (approx.size() != 4) return false;
+        }
+    }
     
+    // Check area constraints
     double area = CalculateArea(approx);
-    return area >= minArea_ && area <= maxArea_;
+    if (area < minArea_ || area > maxArea_) return false;
+    
+    // Check if it's a valid quadrilateral (parallel sides)
+    if (!IsValidQuadrilateral(approx)) return false;
+    
+    // Additional check: verify corner angles are close to π/2 radians (90 degrees)
+    for (int i = 0; i < 4; ++i) {
+        int prev = (i + 3) % 4;
+        int next = (i + 1) % 4;
+        double angle = CalculateCornerAngleFast(approx[prev], approx[i], approx[next]);
+        
+        // Rectangle corners should be close to π/2 radians (allow ~0.6 radians tolerance, about 34 degrees)
+        if (std::abs(angle - std::numbers::pi / 2.0) > 0.6) {
+            return false;
+        }
+    }
+    
+    // Check rectangularity: compare area with bounding box area
+    int minX = approx[0].x, maxX = approx[0].x;
+    int minY = approx[0].y, maxY = approx[0].y;
+    for (const auto& p : approx) {
+        minX = std::min(minX, p.x);
+        maxX = std::max(maxX, p.x);
+        minY = std::min(minY, p.y);
+        maxY = std::max(maxY, p.y);
+    }
+    double boundingBoxArea = (maxX - minX) * (maxY - minY);
+    double rectangularity = area / boundingBoxArea;
+    
+    // For a perfect rectangle, this ratio should be close to 1
+    // Allow some tolerance for rotated rectangles
+    if (rectangularity < 0.6) return false;
+    
+    return true;
 }
 
 bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) const {
@@ -326,11 +369,11 @@ Rectangle RectangleDetector::CreateRectangle(const std::vector<Point>& contour) 
         if (edge1 > edge2) {
             rect.width = static_cast<int>(edge1);
             rect.height = static_cast<int>(edge2);
-            rect.angle = std::atan2(edgeVectors[0].second, edgeVectors[0].first) * 180.0 / PI;
+            rect.angle = std::atan2(edgeVectors[0].second, edgeVectors[0].first);
         } else {
             rect.width = static_cast<int>(edge2);
             rect.height = static_cast<int>(edge1);
-            rect.angle = std::atan2(edgeVectors[1].second, edgeVectors[1].first) * 180.0 / PI;
+            rect.angle = std::atan2(edgeVectors[1].second, edgeVectors[1].first);
         }
     }
     
@@ -424,7 +467,7 @@ double RectangleDetector::CalculateCornerAngle(const Point& prev, const Point& c
     double angle2 = std::atan2(dy2, dx2);
     
     double angleDiff = std::abs(angle2 - angle1);
-    if (angleDiff > PI) angleDiff = 2 * PI - angleDiff;
+    if (angleDiff > std::numbers::pi) angleDiff = 2 * std::numbers::pi - angleDiff;
     
     return angleDiff;
 }
@@ -435,16 +478,17 @@ double RectangleDetector::CalculateCornerAngleFast(const Point& prev, const Poin
     double dx2 = next.x - current.x;
     double dy2 = next.y - current.y;
     
-    // Use dot product and cross product to avoid expensive atan2
+    // Use dot product to calculate angle
     double dot = dx1 * dx2 + dy1 * dy2;
-    double cross = dx1 * dy2 - dy1 * dx2;
+    double len1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+    double len2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
     
-    // angle = atan2(cross, dot), but we only need relative ordering
-    // so we can use cross^2 / (dot^2 + cross^2) as a proxy
-    double denominator = dot * dot + cross * cross;
-    if (denominator < 1e-10) return 0.0;
+    if (len1 < 1e-10 || len2 < 1e-10) return 0.0;
     
-    return (cross * cross) / denominator;
+    // Angle between vectors
+    double cosAngle = dot / (len1 * len2);
+    cosAngle = std::max(-1.0, std::min(1.0, cosAngle)); // Clamp to [-1, 1]
+    return std::acos(cosAngle);
 }
 
 std::vector<Point> RectangleDetector::ExtractBoundary(const std::vector<Point>& region, const Image& image) const {

@@ -6,6 +6,11 @@
 #include <fcntl.h>
 #include <cstdlib>
 #include <fstream>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 void processImage(RectangleDetector& detector, int testNumber, bool useMixedShapes = false) {
     std::cout << "\n=== Test " << testNumber << " ===\n";
@@ -24,10 +29,10 @@ void processImage(RectangleDetector& detector, int testNumber, bool useMixedShap
         std::cout << "Rectangle " << (i + 1) << ":\n";
         std::cout << "  Center: (" << rect.center.x << ", " << rect.center.y << ")\n";
         std::cout << "  Size: " << rect.width << " x " << rect.height << "\n";
-        std::cout << "  Angle: " << rect.angle << " degrees\n";
+        std::cout << "  Angle: " << rect.angle << " radians (" << (rect.angle * 180.0 / M_PI) << " degrees)\n";
         std::cout << "  Mathematical representation: center=(" << rect.center.x << "," << rect.center.y 
                   << "), size=" << rect.width << "x" << rect.height 
-                  << ", angle=" << rect.angle << "°\n";
+                  << ", angle=" << rect.angle << " rad\n";
         std::cout << "\n";
     }
     

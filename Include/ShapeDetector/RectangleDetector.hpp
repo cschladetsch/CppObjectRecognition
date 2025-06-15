@@ -13,7 +13,7 @@ struct Point {
 struct Rectangle {
     Point center;
     int width, height;
-    double angle;  // angle in degrees
+    double angle;  // angle in radians
 };
 
 struct Image {

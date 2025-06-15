@@ -39,7 +39,7 @@ public:
     
 private:
     static std::vector<std::vector<double>> CreateGaussianKernel(int size);
-    static void CreateRotatedRectangle(Image& image, int centerX, int centerY, int rectWidth, int rectHeight, double angleDegrees);
+    static void CreateRotatedRectangle(Image& image, int centerX, int centerY, int rectWidth, int rectHeight, double angleRadians);
     static void FillRotatedRectangle(Image& image, const std::vector<std::pair<int, int>>& corners);
     static bool IsPointInPolygon(int x, int y, const std::vector<std::pair<int, int>>& polygon);
     static std::vector<Point> CleanupRectangleCorners(const std::vector<Point>& corners);

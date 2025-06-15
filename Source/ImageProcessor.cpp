@@ -372,8 +372,8 @@ Image ImageProcessor::CreateTestImage(int width, int height) {
 }
 
 void ImageProcessor::CreateRotatedRectangle(Image& image, int centerX, int centerY, 
-                                          int rectWidth, int rectHeight, double angleDegrees) {
-    double angleRad = angleDegrees * M_PI / 180.0;
+                                          int rectWidth, int rectHeight, double angleRadians) {
+    double angleRad = angleRadians;
     double cosAngle = std::cos(angleRad);
     double sinAngle = std::sin(angleRad);
     
@@ -613,10 +613,10 @@ Image ImageProcessor::CreateTestImageWithMixedShapes(int width, int height) {
         }
     }
     
-    // Add some rectangles
-    CreateRotatedRectangle(image, width/4, height/4, 80, 60, 30);
-    CreateRotatedRectangle(image, 3*width/4, height/4, 100, 50, -20);
-    CreateRotatedRectangle(image, width/2, 3*height/4, 70, 70, 45);
+    // Add some rectangles (angles in radians)
+    CreateRotatedRectangle(image, width/4, height/4, 80, 60, 30 * M_PI / 180.0);
+    CreateRotatedRectangle(image, 3*width/4, height/4, 100, 50, -20 * M_PI / 180.0);
+    CreateRotatedRectangle(image, width/2, 3*height/4, 70, 70, 45 * M_PI / 180.0);
     
     // Add circles
     DrawFilledCircle(image, width/3, height/2, 40, 255);

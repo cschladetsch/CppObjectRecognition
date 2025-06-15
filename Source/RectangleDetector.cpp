@@ -309,14 +309,21 @@ bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) con
 std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point>& contour, double epsilon) const {
     if (contour.size() < 4) return contour;
     
-    // Try multiple epsilon values to find the best 4-corner approximation
     const double perimeter = CalculatePerimeter(contour);
     
-    // Start with a smaller epsilon for rotated rectangles
-    std::vector<double> epsilonMultipliers = {0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0};
+    // Try rotation-invariant corner detection first for larger contours
+    if (contour.size() > 50) {
+        std::vector<Point> rotationInvariantApprox = FindCornersRotationInvariant(contour);
+        if (rotationInvariantApprox.size() >= 4 && rotationInvariantApprox.size() <= 8) {
+            return rotationInvariantApprox;
+        }
+    }
+    
+    // Try multiple epsilon values to find the best 4-corner approximation
+    std::vector<double> epsilonMultipliers = {0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0};
     
     for (double multiplier : epsilonMultipliers) {
-        double epsilonValue = std::max(epsilon * perimeter * multiplier, 3.0);
+        double epsilonValue = std::max(epsilon * perimeter * multiplier, 2.0);
         
         std::vector<Point> approx;
         approx.reserve(8);
@@ -337,16 +344,22 @@ std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point
             return approx;
         }
         
-        // If we get 5-8 corners, we can work with that
-        if (approx.size() >= 5 && approx.size() <= 8) {
+        // If we get 5-12 corners, we can work with that (increased for rotated rectangles)
+        if (approx.size() >= 5 && approx.size() <= 12) {
             return approx;
         }
     }
     
-    // Fallback: use original algorithm
+    // Fallback: use convex hull approach for difficult cases
+    std::vector<Point> hull = ConvexHull(std::vector<Point>(contour));
+    if (hull.size() >= 4 && hull.size() <= 8) {
+        return hull;
+    }
+    
+    // Final fallback: original algorithm
     std::vector<Point> approx;
     approx.reserve(8);
-    double epsilonValue = std::max(epsilon * perimeter, 5.0);
+    double epsilonValue = std::max(epsilon * perimeter, 3.0);
     
     std::vector<bool> keep(contour.size(), false);
     keep[0] = keep[contour.size() - 1] = true;
@@ -771,4 +784,110 @@ std::vector<Point> RectangleDetector::ConvexHull(std::vector<Point> points) cons
 
 double RectangleDetector::Cross(const Point& O, const Point& A, const Point& B) const {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+}
+
+// Rotation-invariant corner detection using curvature analysis
+std::vector<Point> RectangleDetector::FindCornersRotationInvariant(const std::vector<Point>& contour) const {
+    if (contour.size() < 8) return std::vector<Point>(); // Too few points for reliable curvature analysis
+    
+    std::vector<Point> corners;
+    std::vector<double> curvatures;
+    curvatures.reserve(contour.size());
+    
+    // Calculate curvature at each point
+    for (size_t i = 0; i < contour.size(); ++i) {
+        double curvature = CalculateCurvature(contour, i, 5); // Larger window for stability
+        curvatures.push_back(std::abs(curvature));
+    }
+    
+    // Find local maxima in curvature (potential corners)
+    std::vector<std::pair<double, size_t>> curvaturePeaks;
+    const int minDistance = static_cast<int>(contour.size() / 12); // Minimum distance between corners
+    
+    for (size_t i = 0; i < contour.size(); ++i) {
+        bool isLocalMax = true;
+        const int windowSize = std::max(3, minDistance / 2);
+        
+        // Check if this is a local maximum
+        for (int j = -windowSize; j <= windowSize; ++j) {
+            size_t idx = (i + j + contour.size()) % contour.size();
+            if (curvatures[idx] > curvatures[i]) {
+                isLocalMax = false;
+                break;
+            }
+        }
+        
+        if (isLocalMax && curvatures[i] > 0.05) { // Lowered threshold for corner detection
+            curvaturePeaks.push_back({curvatures[i], i});
+        }
+    }
+    
+    // Sort by curvature strength and select the top 4-8 corners
+    std::sort(curvaturePeaks.begin(), curvaturePeaks.end(), std::greater<std::pair<double, size_t>>());
+    
+    // Extract the strongest corner candidates, ensuring minimum distance
+    std::vector<size_t> selectedIndices;
+    for (const auto& peak : curvaturePeaks) {
+        size_t currentIdx = peak.second;
+        bool tooClose = false;
+        
+        // Check minimum distance from already selected corners
+        for (size_t selectedIdx : selectedIndices) {
+            int distance = std::min(
+                static_cast<int>(std::abs(static_cast<int>(currentIdx) - static_cast<int>(selectedIdx))),
+                static_cast<int>(contour.size() - std::abs(static_cast<int>(currentIdx) - static_cast<int>(selectedIdx)))
+            );
+            if (distance < minDistance) {
+                tooClose = true;
+                break;
+            }
+        }
+        
+        if (!tooClose) {
+            selectedIndices.push_back(currentIdx);
+        }
+        
+        if (selectedIndices.size() >= 8) break; // Limit to 8 corners maximum
+    }
+    
+    // Sort indices to maintain contour order
+    std::sort(selectedIndices.begin(), selectedIndices.end());
+    
+    // Extract corner points
+    for (size_t idx : selectedIndices) {
+        corners.push_back(contour[idx]);
+    }
+    
+    return corners;
+}
+
+// Calculate curvature at a specific point using discrete approximation
+double RectangleDetector::CalculateCurvature(const std::vector<Point>& contour, size_t index, int windowSize) const {
+    if (contour.size() < 3 || windowSize < 1) return 0.0;
+    
+    const size_t n = contour.size();
+    const int prevIdx = (index - windowSize + n) % n;
+    const int nextIdx = (index + windowSize) % n;
+    
+    const Point& prev = contour[prevIdx];
+    const Point& curr = contour[index];
+    const Point& next = contour[nextIdx];
+    
+    // Calculate vectors
+    const double dx1 = curr.x - prev.x;
+    const double dy1 = curr.y - prev.y;
+    const double dx2 = next.x - curr.x;
+    const double dy2 = next.y - curr.y;
+    
+    // Calculate cross product (measures turn angle)
+    const double cross = dx1 * dy2 - dy1 * dx2;
+    
+    // Calculate segment lengths
+    const double len1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+    const double len2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+    
+    if (len1 < EPSILON_TOLERANCE || len2 < EPSILON_TOLERANCE) return 0.0;
+    
+    // Curvature approximation: cross product normalized by average segment length
+    return cross / ((len1 + len2) * 0.5);
 }

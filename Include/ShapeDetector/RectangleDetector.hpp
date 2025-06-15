@@ -73,5 +73,7 @@ private:
     double CalculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const;
     Point CalculateContourCentroid(const std::vector<Point>& contour) const;
     bool IsCircularShape(const std::vector<Point>& contour, const std::vector<Point>& approx) const;
+    std::vector<Point> FindCornersRotationInvariant(const std::vector<Point>& contour) const;
+    double CalculateCurvature(const std::vector<Point>& contour, size_t index, int windowSize = 3) const;
 };
 

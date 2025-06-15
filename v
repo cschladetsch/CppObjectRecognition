@@ -35,11 +35,12 @@ echo "PNG files generated directly by visual test..."
 
 echo ""
 echo "Files created:"
-echo "  - visual_test_circles_only.png     (circles only - 0 rectangles detected)"
-echo "  - visual_test_triangles_only.png   (triangles only - 0 rectangles detected)"
-echo "  - visual_test_rectangles_only.png  (rectangles only - all detected)"
-echo "  - visual_test_mixed_shapes.png     (mixed shapes - only rectangles detected)"
-echo "  - visual_test_complex_scene.png    (complex scene - only rectangles detected)"
+echo "  - visual_test_circles_only.png      (circles only - 0 rectangles detected)"
+echo "  - visual_test_triangles_only.png    (triangles only - 0 rectangles detected)"
+echo "  - visual_test_rectangles_only.png   (rectangles only - all detected)"
+echo "  - visual_test_mixed_shapes.png      (mixed shapes - only rectangles detected)"
+echo "  - visual_test_rotated_rectangles.png (rotated rectangles at various angles - all detected)"
+echo "  - visual_test_complex_scene.png     (complex scene - only rectangles detected)"
 
 echo ""
 echo "Image Information:"
@@ -69,8 +70,8 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
     echo "Opening mixed shapes test with Windows explorer..."
     explorer.exe visual_test_mixed_shapes.png 2>/dev/null &
     
-    echo "Opening rectangles only test with Windows explorer..."
-    explorer.exe visual_test_rectangles_only.png 2>/dev/null &
+    echo "Opening rotated rectangles test with Windows explorer..."
+    explorer.exe visual_test_rotated_rectangles.png 2>/dev/null &
     
 else
     echo "Linux system detected."
@@ -87,8 +88,8 @@ else
         echo ""
         echo "Opening mixed shapes test with ImageMagick display..."
         display visual_test_mixed_shapes.png &
-        echo "Opening rectangles only test with ImageMagick display..."
-        display visual_test_rectangles_only.png &
+        echo "Opening rotated rectangles test with ImageMagick display..."
+        display visual_test_rotated_rectangles.png &
     elif command -v eog &> /dev/null; then
         echo ""
         echo "Opening visual tests with Eye of GNOME..."

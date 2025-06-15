@@ -37,10 +37,10 @@ public:
     static void DrawFilledTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color = 255);
     static void DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255); // angle in radians
     static void DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255); // angle in radians
+    static void CreateRotatedRectangle(Image& image, int centerX, int centerY, int rectWidth, int rectHeight, double angleRadians);
     
 private:
     static std::vector<std::vector<double>> CreateGaussianKernel(int size);
-    static void CreateRotatedRectangle(Image& image, int centerX, int centerY, int rectWidth, int rectHeight, double angleRadians);
     static void FillRotatedRectangle(Image& image, const std::vector<std::pair<int, int>>& corners);
     static bool IsPointInPolygon(int x, int y, const std::vector<std::pair<int, int>>& polygon);
     static std::vector<Point> CleanupRectangleCorners(const std::vector<Point>& corners);

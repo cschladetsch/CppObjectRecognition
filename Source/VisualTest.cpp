@@ -2,6 +2,11 @@
 #include "ShapeDetector/ImageProcessor.hpp"
 #include <iostream>
 #include <string>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 void CreateAndTestImage(const std::string& testName, Image testImage, const std::string& description) {
     // Create detector with reasonable settings
@@ -143,9 +148,13 @@ Image CreateMixedShapesImage() {
         }
     }
     
+    // Add rotated rectangles (should also be detected)
+    ImageProcessor::CreateRotatedRectangle(image, 450, 120, 60, 40, M_PI/6);    // 30 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 500, 320, 70, 45, -M_PI/4);   // -45 degrees
+    
     // Add circles (should NOT be detected)
     ImageProcessor::DrawFilledCircle(image, 250, 100, 35, 255);
-    ImageProcessor::DrawFilledCircle(image, 450, 120, 40, 255);
+    ImageProcessor::DrawFilledCircle(image, 350, 120, 40, 255);  // Moved to avoid overlap
     ImageProcessor::DrawFilledCircle(image, 100, 300, 30, 255);
     
     // Add triangles (should NOT be detected)
@@ -217,6 +226,29 @@ Image CreateComplexSceneImage() {
     return image;
 }
 
+Image CreateRotatedRectanglesImage() {
+    Image image(500, 400);
+    
+    // Black background
+    for (int y = 0; y < 400; ++y) {
+        for (int x = 0; x < 500; ++x) {
+            image.pixels[y][x] = 0;
+        }
+    }
+    
+    // Add rotated rectangles at various angles
+    ImageProcessor::CreateRotatedRectangle(image, 120, 100, 80, 50, 0.0);           // 0 degrees (horizontal)
+    ImageProcessor::CreateRotatedRectangle(image, 300, 100, 80, 50, M_PI/6);        // 30 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 120, 200, 80, 50, M_PI/4);        // 45 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 300, 200, 80, 50, M_PI/3);        // 60 degrees  
+    ImageProcessor::CreateRotatedRectangle(image, 120, 300, 80, 50, M_PI/2);        // 90 degrees (vertical)
+    ImageProcessor::CreateRotatedRectangle(image, 300, 300, 80, 50, 2*M_PI/3);      // 120 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 420, 150, 60, 40, -M_PI/4);       // -45 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 420, 250, 60, 40, -M_PI/6);       // -30 degrees
+    
+    return image;
+}
+
 int main() {
     std::cout << "=== Visual Rectangle Detection Tests ===" << std::endl << std::endl;
     
@@ -236,7 +268,11 @@ int main() {
     Image mixedImage = CreateMixedShapesImage();
     CreateAndTestImage("mixed_shapes", mixedImage, "Mixed shapes - should detect only rectangles");
     
-    // Test 5: Complex scene (should detect only rectangles among many shapes)
+    // Test 5: Rotated rectangles (should detect all rotated rectangles)
+    Image rotatedImage = CreateRotatedRectanglesImage();
+    CreateAndTestImage("rotated_rectangles", rotatedImage, "Rotated rectangles at various angles - should detect all");
+    
+    // Test 6: Complex scene (should detect only rectangles among many shapes)
     Image complexImage = CreateComplexSceneImage();
     CreateAndTestImage("complex_scene", complexImage, "Complex scene - should detect only rectangles");
     

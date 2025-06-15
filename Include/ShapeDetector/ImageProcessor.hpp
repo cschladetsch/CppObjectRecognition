@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RectangleDetector.h"
+#include "RectangleDetector.hpp"
 #include <string>
 #include <fstream>
 
@@ -29,6 +29,13 @@ public:
     static Image ApplyGaussianBlur(const Image& image, int kernelSize = 5);
     static void DrawRectangles(Image& image, const std::vector<Rectangle>& rectangles);
     static Image CreateTestImage(int width, int height);
+    static Image CreateTestImageWithMixedShapes(int width, int height);
+    static void DrawCircle(Image& image, int centerX, int centerY, int radius, int color = 255);
+    static void DrawFilledCircle(Image& image, int centerX, int centerY, int radius, int color = 255);
+    static void DrawTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color = 255);
+    static void DrawFilledTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color = 255);
+    static void DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255);
+    static void DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255);
     
 private:
     static std::vector<std::vector<double>> CreateGaussianKernel(int size);

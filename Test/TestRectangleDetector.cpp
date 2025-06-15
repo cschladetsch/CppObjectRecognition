@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "ShapeDetector/RectangleDetector.h"
-#include "ShapeDetector/ImageProcessor.h"
+#include "ShapeDetector/RectangleDetector.hpp"
+#include "ShapeDetector/ImageProcessor.hpp"
 
 class RectangleDetectorTest : public ::testing::Test {
 protected:
@@ -125,4 +125,66 @@ TEST_F(RectangleDetectorTest, FiltersByMaxArea) {
     std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_EQ(rectangles.size(), 0);
+}
+
+TEST_F(RectangleDetectorTest, DiscriminatesNonRectangleShapes) {
+    // Test that the detector doesn't confuse circles, triangles, and ellipses with rectangles
+    Image testImage(400, 300);
+    
+    // Black background
+    for (int y = 0; y < testImage.height; ++y) {
+        for (int x = 0; x < testImage.width; ++x) {
+            testImage.pixels[y][x] = 0;
+        }
+    }
+    
+    // Add a rectangle - this should be detected
+    for (int y = 50; y < 100; ++y) {
+        for (int x = 50; x < 150; ++x) {
+            testImage.pixels[y][x] = 255;
+        }
+    }
+    
+    // Add a circle - this should NOT be detected as a rectangle
+    ImageProcessor::DrawFilledCircle(testImage, 250, 75, 30, 255);
+    
+    // Add a triangle - this should NOT be detected as a rectangle
+    Point t1(100, 200);
+    Point t2(150, 200);
+    Point t3(125, 150);
+    ImageProcessor::DrawFilledTriangle(testImage, t1, t2, t3, 255);
+    
+    // Add an ellipse - this should NOT be detected as a rectangle
+    ImageProcessor::DrawFilledEllipse(testImage, 300, 200, 40, 25, 0, 255);
+    
+    detector->SetMinArea(100.0);
+    detector->SetMaxArea(10000.0);
+    
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
+    
+    // Should only detect the actual rectangle, not the other shapes
+    EXPECT_EQ(rectangles.size(), 1);
+    
+    if (rectangles.size() > 0) {
+        // Verify the detected rectangle is approximately where we placed it
+        const Rectangle& rect = rectangles[0];
+        EXPECT_NEAR(rect.center.x, 100, 10);
+        EXPECT_NEAR(rect.center.y, 75, 10);
+        EXPECT_NEAR(rect.width, 100, 10);
+        EXPECT_NEAR(rect.height, 50, 10);
+    }
+}
+
+TEST_F(RectangleDetectorTest, DetectsRectanglesAmongMixedShapes) {
+    // Test with the mixed shapes image
+    Image testImage = ImageProcessor::CreateTestImageWithMixedShapes(400, 300);
+    
+    detector->SetMinArea(100.0);
+    detector->SetMaxArea(10000.0);
+    
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
+    
+    // The CreateTestImageWithMixedShapes function adds 3 rectangles
+    EXPECT_GE(rectangles.size(), 2);  // Allow some tolerance
+    EXPECT_LE(rectangles.size(), 4);  // But not too many false positives
 }

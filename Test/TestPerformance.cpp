@@ -1,8 +1,8 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
-#include "ShapeDetector/RectangleDetector.h"
-#include "ShapeDetector/ImageProcessor.h"
+#include "ShapeDetector/RectangleDetector.hpp"
+#include "ShapeDetector/ImageProcessor.hpp"
 
 using namespace std::chrono;
 
@@ -108,6 +108,51 @@ void testPerformance() {
                 std::cout << "  - Average time per rectangle: " << avg_ms << " ms\n";
             }
         }
+    }
+    
+    // Test with mixed shapes to evaluate discrimination capability
+    std::cout << "\nTesting rectangle detection with mixed shapes...\n";
+    std::cout << "-----------------------------------------------\n\n";
+    
+    for (int size : sizes) {
+        std::cout << "Testing mixed shapes image: " << size << "x" << size << "\n";
+        
+        // Create test image with mixed shapes
+        Image mixedImage = ImageProcessor::CreateTestImageWithMixedShapes(size, size);
+        
+        // Create detector
+        RectangleDetector mixedDetector;
+        mixedDetector.SetMinArea(100.0);
+        mixedDetector.SetMaxArea(size * size * 0.5);
+        
+        // Count actual rectangles in the mixed shapes image
+        int expectedRectangles = 3; // We know we add 3 rectangles in CreateTestImageWithMixedShapes
+        
+        // Measure detection time
+        auto start = high_resolution_clock::now();
+        std::vector<Rectangle> detectedRectangles = mixedDetector.DetectRectangles(mixedImage);
+        auto end = high_resolution_clock::now();
+        
+        auto duration_ms = duration_cast<milliseconds>(end - start);
+        auto duration_us = duration_cast<microseconds>(end - start);
+        auto duration_ns = duration_cast<nanoseconds>(end - start);
+        
+        std::cout << "  - Expected rectangles: " << expectedRectangles << "\n";
+        std::cout << "  - Detected rectangles: " << detectedRectangles.size() << "\n";
+        std::cout << "  - Detection accuracy: " << 
+            (detectedRectangles.size() <= expectedRectangles ? 100.0 * detectedRectangles.size() / expectedRectangles : 
+             100.0 * expectedRectangles / detectedRectangles.size()) << "%\n";
+        
+        if (duration_ms.count() == 0) {
+            if (duration_us.count() == 0) {
+                std::cout << "  - Time taken: " << duration_ns.count() << " ns\n";
+            } else {
+                std::cout << "  - Time taken: " << duration_us.count() << " µs\n";
+            }
+        } else {
+            std::cout << "  - Time taken: " << duration_ms.count() << " ms\n";
+        }
+        std::cout << "\n";
     }
 }
 

@@ -1,10 +1,12 @@
-#include "ShapeDetector/ImageProcessor.h"
+#include "ShapeDetector/ImageProcessor.hpp"
+#include "Utils.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cmath>
 #include <random>
 #include <chrono>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -463,4 +465,177 @@ std::vector<std::vector<double>> ImageProcessor::CreateGaussianKernel(int size) 
     }
     
     return kernel;
+}
+
+void ImageProcessor::DrawCircle(Image& image, int centerX, int centerY, int radius, int color) {
+    // Bresenham's circle algorithm
+    int x = radius;
+    int y = 0;
+    int err = 0;
+    
+    while (x >= y) {
+        // Draw 8 octants
+        if (centerX + x >= 0 && centerX + x < image.width && centerY + y >= 0 && centerY + y < image.height)
+            image.pixels[centerY + y][centerX + x] = color;
+        if (centerX + y >= 0 && centerX + y < image.width && centerY + x >= 0 && centerY + x < image.height)
+            image.pixels[centerY + x][centerX + y] = color;
+        if (centerX - y >= 0 && centerX - y < image.width && centerY + x >= 0 && centerY + x < image.height)
+            image.pixels[centerY + x][centerX - y] = color;
+        if (centerX - x >= 0 && centerX - x < image.width && centerY + y >= 0 && centerY + y < image.height)
+            image.pixels[centerY + y][centerX - x] = color;
+        if (centerX - x >= 0 && centerX - x < image.width && centerY - y >= 0 && centerY - y < image.height)
+            image.pixels[centerY - y][centerX - x] = color;
+        if (centerX - y >= 0 && centerX - y < image.width && centerY - x >= 0 && centerY - x < image.height)
+            image.pixels[centerY - x][centerX - y] = color;
+        if (centerX + y >= 0 && centerX + y < image.width && centerY - x >= 0 && centerY - x < image.height)
+            image.pixels[centerY - x][centerX + y] = color;
+        if (centerX + x >= 0 && centerX + x < image.width && centerY - y >= 0 && centerY - y < image.height)
+            image.pixels[centerY - y][centerX + x] = color;
+            
+        if (err <= 0) {
+            y += 1;
+            err += 2*y + 1;
+        }
+        if (err > 0) {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
+}
+
+void ImageProcessor::DrawFilledCircle(Image& image, int centerX, int centerY, int radius, int color) {
+    for (int y = -radius; y <= radius; y++) {
+        for (int x = -radius; x <= radius; x++) {
+            if (x*x + y*y <= radius*radius) {
+                int px = centerX + x;
+                int py = centerY + y;
+                if (px >= 0 && px < image.width && py >= 0 && py < image.height) {
+                    image.pixels[py][px] = color;
+                }
+            }
+        }
+    }
+}
+
+void ImageProcessor::DrawTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color) {
+    DrawLine(image, p1, p2);
+    DrawLine(image, p2, p3);
+    DrawLine(image, p3, p1);
+}
+
+void ImageProcessor::DrawFilledTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color) {
+    // Get bounding box
+    int minX = std::min(std::min(p1.x, p2.x), p3.x);
+    int maxX = std::max(std::max(p1.x, p2.x), p3.x);
+    int minY = std::min(std::min(p1.y, p2.y), p3.y);
+    int maxY = std::max(std::max(p1.y, p2.y), p3.y);
+    
+    // Clamp to image bounds
+    minX = Clamp(minX, 0, image.width - 1);
+    maxX = Clamp(maxX, 0, image.width - 1);
+    minY = Clamp(minY, 0, image.height - 1);
+    maxY = Clamp(maxY, 0, image.height - 1);
+    
+    // Barycentric coordinates
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            // Calculate barycentric coordinates
+            double denominator = ((p2.y - p3.y)*(p1.x - p3.x) + (p3.x - p2.x)*(p1.y - p3.y));
+            if (std::abs(denominator) < 1e-10) continue;
+            
+            double a = ((p2.y - p3.y)*(x - p3.x) + (p3.x - p2.x)*(y - p3.y)) / denominator;
+            double b = ((p3.y - p1.y)*(x - p3.x) + (p1.x - p3.x)*(y - p3.y)) / denominator;
+            double c = 1 - a - b;
+            
+            // Check if point is inside triangle
+            if (a >= 0 && b >= 0 && c >= 0) {
+                image.pixels[y][x] = color;
+            }
+        }
+    }
+}
+
+void ImageProcessor::DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle, int color) {
+    double cosA = std::cos(angle * M_PI / 180.0);
+    double sinA = std::sin(angle * M_PI / 180.0);
+    
+    // Draw ellipse using parametric form
+    for (double t = 0; t < 2 * M_PI; t += 0.01) {
+        double x = radiusX * std::cos(t);
+        double y = radiusY * std::sin(t);
+        
+        // Rotate
+        double rotX = x * cosA - y * sinA;
+        double rotY = x * sinA + y * cosA;
+        
+        // Translate
+        int px = static_cast<int>(centerX + rotX);
+        int py = static_cast<int>(centerY + rotY);
+        
+        if (px >= 0 && px < image.width && py >= 0 && py < image.height) {
+            image.pixels[py][px] = color;
+        }
+    }
+}
+
+void ImageProcessor::DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle, int color) {
+    double cosA = std::cos(angle * M_PI / 180.0);
+    double sinA = std::sin(angle * M_PI / 180.0);
+    
+    // Get bounding box
+    int maxRadius = std::max(radiusX, radiusY);
+    
+    for (int y = -maxRadius; y <= maxRadius; y++) {
+        for (int x = -maxRadius; x <= maxRadius; x++) {
+            // Reverse rotate the point
+            double rotX = x * cosA + y * sinA;
+            double rotY = -x * sinA + y * cosA;
+            
+            // Check if point is inside ellipse
+            if ((rotX * rotX) / (radiusX * radiusX) + (rotY * rotY) / (radiusY * radiusY) <= 1.0) {
+                int px = centerX + x;
+                int py = centerY + y;
+                if (px >= 0 && px < image.width && py >= 0 && py < image.height) {
+                    image.pixels[py][px] = color;
+                }
+            }
+        }
+    }
+}
+
+Image ImageProcessor::CreateTestImageWithMixedShapes(int width, int height) {
+    Image image(width, height);
+    
+    // Black background
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            image.pixels[y][x] = 0;
+        }
+    }
+    
+    // Add some rectangles
+    CreateRotatedRectangle(image, width/4, height/4, 80, 60, 30);
+    CreateRotatedRectangle(image, 3*width/4, height/4, 100, 50, -20);
+    CreateRotatedRectangle(image, width/2, 3*height/4, 70, 70, 45);
+    
+    // Add circles
+    DrawFilledCircle(image, width/3, height/2, 40, 255);
+    DrawCircle(image, 2*width/3, height/2, 50, 255);
+    
+    // Add triangles
+    Point t1(width/5, height/5);
+    Point t2(width/5 + 60, height/5);
+    Point t3(width/5 + 30, height/5 - 50);
+    DrawFilledTriangle(image, t1, t2, t3, 255);
+    
+    Point t4(4*width/5, height/5);
+    Point t5(4*width/5 + 60, height/5);
+    Point t6(4*width/5 + 30, height/5 + 50);
+    DrawTriangle(image, t4, t5, t6, 255);
+    
+    // Add ellipses
+    DrawFilledEllipse(image, width/2, height/2, 60, 30, 30, 255);
+    DrawEllipse(image, width/4, 3*height/4, 40, 25, -30, 255);
+    
+    return image;
 }

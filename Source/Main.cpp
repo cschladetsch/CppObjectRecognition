@@ -1,5 +1,5 @@
-#include "ShapeDetector/RectangleDetector.h"
-#include "ShapeDetector/ImageProcessor.h"
+#include "ShapeDetector/RectangleDetector.hpp"
+#include "ShapeDetector/ImageProcessor.hpp"
 #include <iostream>
 #include <termios.h>
 #include <unistd.h>
@@ -7,10 +7,12 @@
 #include <cstdlib>
 #include <fstream>
 
-void processImage(RectangleDetector& detector, int testNumber) {
+void processImage(RectangleDetector& detector, int testNumber, bool useMixedShapes = false) {
     std::cout << "\n=== Test " << testNumber << " ===\n";
-    std::cout << "Creating test image with rectangles...\n";
-    Image testImage = ImageProcessor::CreateTestImage(400, 300);
+    std::cout << "Creating test image with " << (useMixedShapes ? "mixed shapes" : "rectangles only") << "...\n";
+    Image testImage = useMixedShapes ? 
+        ImageProcessor::CreateTestImageWithMixedShapes(400, 300) : 
+        ImageProcessor::CreateTestImage(400, 300);
     
     std::cout << "Detecting rectangles...\n";
     std::vector<Rectangle> rectangles = detector.DetectRectangles(testImage);
@@ -107,7 +109,10 @@ char getChar() {
 int main() {
     std::cout << "Rectangle Detection System\n";
     std::cout << "=========================\n";
-    std::cout << "Press SPACE to generate new test, 'q' to quit\n\n";
+    std::cout << "Controls:\n";
+    std::cout << "  SPACE - Generate new test with rectangles only\n";
+    std::cout << "  M     - Generate new test with mixed shapes\n";
+    std::cout << "  Q     - Quit\n\n";
     
     RectangleDetector detector;
     detector.SetMinArea(200.0);
@@ -120,19 +125,21 @@ int main() {
     processImage(detector, testNumber++);
     
     while (true) {
-        std::cout << "\nPress SPACE for new test, 'q' to quit: ";
+        std::cout << "\nPress SPACE (rectangles), M (mixed shapes), or Q (quit): ";
         std::cout.flush();
         
         char input = getChar();
         std::cout << "\n";
         
         if (input == ' ') {
-            processImage(detector, testNumber++);
+            processImage(detector, testNumber++, false);
+        } else if (input == 'm' || input == 'M') {
+            processImage(detector, testNumber++, true);
         } else if (input == 'q' || input == 'Q') {
             std::cout << "Exiting...\n";
             break;
         } else {
-            std::cout << "Unknown command. Press SPACE for new test, 'q' to quit.\n";
+            std::cout << "Unknown command. Press SPACE (rectangles), M (mixed shapes), or Q (quit).\n";
         }
     }
     

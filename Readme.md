@@ -1,6 +1,6 @@
-# Rectangle Detection System
+# Object Detection System
 
-A C++ computer vision application that detects rectangles in images using custom image processing algorithms with comprehensive visual testing capabilities.
+A C++ computer vision application that detects objects in images using custom image processing algorithms with comprehensive visual testing capabilities.
 
 Optimised via algorithms and OMP.
 
@@ -8,7 +8,7 @@ Optimised via algorithms and OMP.
 
 ## Demo
 
-Rects could be rotated, in this demo image they are not.
+Rects could be rotated; in this demo image, they are not.
 
 ![Demo](resources/Demo.png)
 
@@ -27,10 +27,10 @@ Rects could be rotated, in this demo image they are not.
 - **Performance Optimized**: 
   - Multi-threaded processing with OpenMP
   - Efficient scanline flood fill algorithm
-  - Optimized contour approximation with Douglas-Peucker
+  - Optimised contour approximation with Douglas-Peucker
   - Cache-friendly data structures with pre-allocation
   - Aggressive compiler optimizations (-O3, -march=native, -flto)
-  - Algorithm-specific optimizations for hot paths
+  - Algorithm-specific optimisations for hot paths
 
 ## Project Structure
 
@@ -90,7 +90,7 @@ Use scripts:
 ```bash
 $ ./b # Build the project and run unit tests
 $ ./r # Build and run the main rectangle detection application
-$ ./v # Build and run visual test suite with automatic image viewing
+$ ./v # Build and run the visual test suite with automatic image viewing
 ```
 
 Or manually:
@@ -116,7 +116,7 @@ cd build
 ```
 
 - Input: PGM grayscale images
-- Output: PPM color images with detected rectangles outlined in red
+- Output: PPM colour images with detected rectangles outlined in red
 - Detected rectangles are displayed with red boundary outlines
 
 ### Visual Testing Suite
@@ -125,10 +125,10 @@ cd build
 ./v  # Runs comprehensive visual tests
 ```
 
-The visual testing suite generates 6 different test scenarios:
+The visual testing suite generates six different test scenarios:
 
-1. **circles_only.png** - Multiple circles (should detect 0 rectangles)
-2. **triangles_only.png** - Multiple triangles (should detect 0 rectangles)  
+1. **circles_only.png** - Multiple circles (should detect zero rectangles)
+2. **triangles_only.png** - Multiple triangles (should detect zero rectangles)  
 3. **rectangles_only.png** - Multiple axis-aligned rectangles (should detect all)
 4. **mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect only rectangles)
 5. **rotated_rectangles.png** - 22+ rectangles at various angles from 0° to 165° in 15° increments (should detect all rotated rectangles)
@@ -147,7 +147,7 @@ The rotated rectangles test includes:
 
 ## Algorithm Details
 
-The rectangle detection system uses state-of-the-art multi-strategy approach for 100% rotation invariance:
+The rectangle detection system uses a state-of-the-art multi-strategy approach for 100% rotation invariance:
 
 ### Multi-Strategy Detection Pipeline
 
@@ -165,14 +165,14 @@ The rectangle detection system uses state-of-the-art multi-strategy approach for
 - **Strict Shape Discrimination**: Multiple checks to reject circles, ellipses, and triangles:
   - Circularity analysis (rejects shapes with circularity > 0.8)
   - Compactness testing (rejects highly compact elliptical shapes)
-  - Ellipticity verification using normalized central moments
+  - Ellipticity verification using normalised central moments
   - Radial variance analysis for corner detection
 
 ### Rotation Invariance Features
 
 - **100% Success Rate**: Perfect detection across all angles 0° to 180°
 - **Pixel-Level Precision**: Subpixel rotation accuracy for critical angles
-- **Mathematical Robustness**: Moment-based analysis immune to discretization effects
+- **Mathematical Robustness**: Moment-based analysis immune to discretisation effects
 
 ## Testing
 
@@ -201,13 +201,13 @@ The test suite includes:
 - **TestImageProcessor.cpp**: Tests for image I/O, filtering, and manipulation functions
 - **TestRectangleDetector.cpp**: Comprehensive shape discrimination tests:
   - `OnlyDetectsCircles_ShouldFindZero` - Verifies circles are not detected as rectangles
-  - `OnlyDetectsTriangles_ShouldFindZero` - Verifies triangles are not detected as rectangles
+  - `OnlyDetectsTriangles_ShouldFindZero` - Verifies that triangles are not detected as rectangles
   - `OnlyDetectsEllipses_ShouldFindZero` - Verifies ellipses are not detected as rectangles
   - `DetectsOnlyRectanglesAmongMixedShapes` - Verifies selective rectangle detection
-  - `DetectsOnlySquaresAsRectangles` - Verifies squares are correctly identified as rectangles
+  - `DetectsOnlySquaresAsRectangles` - Verifies that squares are correctly identified as rectangles
 - **TestMain.cpp**: Google Test framework runner
 
-All tests use Google Test framework and run automatically during the build process.
+All tests use the Google Test framework and run automatically during the build process.
 
 ### Performance Testing
 
@@ -220,7 +220,7 @@ cd build
 ./TestPerformance
 ```
 
-#### What TestPerformance Measures
+#### What Test Performance Measures
 
 1. **Scalability Testing**: Tests detection performance on images of increasing sizes (100x100 to 1600x1600 pixels)
 2. **Complex Scene Testing**: Evaluates performance on images with many small rectangles (grid pattern)
@@ -267,21 +267,21 @@ Testing with complex image (many small rectangles)...
 #### Performance Characteristics
 
 - **Exceptional Speed**: Up to 116K+ pixels/ms processing rate on large images
-- **Highly Optimized**: 79% faster than previous version through comprehensive optimizations
+- **Highly Optimized**: 79% faster than the previous version through comprehensive optimisations
 - **Parallel Processing**: Multi-threaded contour analysis for large datasets
 - **Sub-millisecond Detection**: Individual rectangles detected in ~82 microseconds
 - **Scalable Performance**: Maintains high throughput across different image sizes
 - **No External Dependencies**: Pure C++ implementation with aggressive compiler optimizations
 
-## Performance Optimizations
+## Performance Optimisations
 
-The system includes several high-performance optimizations:
+The system includes several high-performance optimisations:
 
 - **Compiler Optimizations**: `-O3 -march=native -mtune=native -flto -ffast-math`
-- **Memory Management**: Pre-allocated vectors and caches to minimize dynamic allocation
-- **Parallel Processing**: OpenMP parallelization for large contour sets
+- **Memory Management**: Pre-allocated vectors and caches to minimise dynamic allocation
+- **Parallel Processing**: OpenMP parallelisation for large contour sets
 - **Algorithm Efficiency**: 
-  - Optimized quadrilateral validation with stack arrays
+  - Optimised quadrilateral validation with stack arrays
   - Unrolled loops for common quadrilateral cases
   - Single-pass bounding box calculations
   - Early exit conditions for faster rejection
@@ -312,4 +312,4 @@ The application generates:
 
 ## License
 
-This project is licensed under the MIT Licence. See the LICENSE file.
+This project is licensed under the MIT License. See the LICENSE file.

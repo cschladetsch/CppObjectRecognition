@@ -21,7 +21,7 @@ void CreateAndTestImage(const std::string &testName, Image testImage,
       ImageProcessor::CreateColorImage(testImage, rectangles);
 
   // Save the result as PNG
-  std::string filename = "visual_test_" + testName + ".png";
+  std::string filename = "Output/Images/visual_test_" + testName + ".png";
   ImageProcessor::SavePNGImage(colorImage, filename);
 
   std::cout << testName << " (" << description << "):" << std::endl;
@@ -351,7 +351,7 @@ int main() {
                      "Complex scene - should detect only rectangles");
 
   std::cout << "=== All visual tests completed ===" << std::endl;
-  std::cout << "Check the generated .png files to see the results!"
+  std::cout << "Check the generated .png files in Output/Images/ to see the results!"
             << std::endl;
   std::cout << "Red outlines indicate detected rectangles." << std::endl;
 

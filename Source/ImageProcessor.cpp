@@ -5,6 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <omp.h>
 #include <random>
 #include <sstream>
 
@@ -115,6 +116,7 @@ ImageProcessor::CreateColorImage(const Image &grayImage,
   ColorImage colorImage(grayImage.width, grayImage.height);
 
   // Convert grayscale to color (preserve all original pixel values)
+#pragma omp parallel for
   for (int y = 0; y < grayImage.height; ++y) {
     for (int x = 0; x < grayImage.width; ++x) {
       unsigned char grayValue =
@@ -144,6 +146,7 @@ ImageProcessor::CreateColorImage(const Image &grayImage,
 Image ImageProcessor::ApplyThreshold(const Image &image, int threshold) {
   Image result = image;
 
+#pragma omp parallel for
   for (int y = 0; y < result.height; ++y) {
     for (int x = 0; x < result.width; ++x) {
       result.pixels[y][x] = (result.pixels[y][x] > threshold) ? 255 : 0;
@@ -162,6 +165,7 @@ Image ImageProcessor::ApplyGaussianBlur(const Image &image, int kernelSize) {
 
   int halfKernel = kernelSize / 2;
 
+#pragma omp parallel for
   for (int y = halfKernel; y < image.height - halfKernel; ++y) {
     for (int x = halfKernel; x < image.width - halfKernel; ++x) {
       double sum = 0.0;
@@ -367,6 +371,7 @@ Image ImageProcessor::CreateTestImage(int width, int height) {
   Image image(width, height);
 
   // Fill with black background
+#pragma omp parallel for
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       image.pixels[y][x] = 0;
@@ -506,6 +511,7 @@ void ImageProcessor::FillRotatedRectangle(
   maxY = std::min(image.height - 1, maxY);
 
   // For each point in bounding box, check if it's inside the rectangle
+#pragma omp parallel for
   for (int y = minY; y <= maxY; ++y) {
     for (int x = minX; x <= maxX; ++x) {
       if (IsPointInPolygon(x, y, corners)) {
@@ -604,6 +610,7 @@ void ImageProcessor::DrawCircle(Image &image, int centerX, int centerY,
 
 void ImageProcessor::DrawFilledCircle(Image &image, int centerX, int centerY,
                                       int radius, int color) {
+#pragma omp parallel for
   for (int y = -radius; y <= radius; y++) {
     for (int x = -radius; x <= radius; x++) {
       if (x * x + y * y <= radius * radius) {
@@ -640,6 +647,7 @@ void ImageProcessor::DrawFilledTriangle(Image &image, const Point &p1,
   maxY = Clamp(maxY, 0, image.height - 1);
 
   // Barycentric coordinates
+#pragma omp parallel for
   for (int y = minY; y <= maxY; y++) {
     for (int x = minX; x <= maxX; x++) {
       // Calculate barycentric coordinates
@@ -698,6 +706,7 @@ void ImageProcessor::DrawFilledEllipse(Image &image, int centerX, int centerY,
   // Get bounding box
   int maxRadius = std::max(radiusX, radiusY);
 
+#pragma omp parallel for
   for (int y = -maxRadius; y <= maxRadius; y++) {
     for (int x = -maxRadius; x <= maxRadius; x++) {
       // Reverse rotate the point
@@ -722,6 +731,7 @@ Image ImageProcessor::CreateTestImageWithMixedShapes(int width, int height) {
   Image image(width, height);
 
   // Black background
+#pragma omp parallel for
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       image.pixels[y][x] = 0;

@@ -25,12 +25,13 @@ Rects could be rotated; in this demo image, they are not.
 - **Thick Visual Outlines**: 4-pixel thick red outlines for clear visualization of detected rectangles
 - **Cross-platform**: Supports Linux, macOS, and Windows (via WSL)
 - **Performance Optimized**: 
-  - Multi-threaded processing with OpenMP
+  - Multi-threaded processing with OpenMP parallelization on all critical loops
   - Efficient scanline flood fill algorithm
   - Optimised contour approximation with Douglas-Peucker
   - Cache-friendly data structures with pre-allocation
-  - Aggressive compiler optimizations (-O3, -march=native, -flto)
-  - Algorithm-specific optimisations for hot paths
+  - Aggressive compiler optimizations (-O3, -march=native, -flto, -ffast-math, -s)
+  - Algorithm-specific optimizations for hot paths
+  - Forced Release mode builds for maximum performance
 
 ## Project Structure
 
@@ -59,6 +60,12 @@ CppRectangleRecognition/
 │   ├── TestRectangleDetector.cpp     # 🔍 Core rectangle detection tests
 │   ├── TestRobustness.cpp            # 💪 Robustness and edge case tests
 │   └── TestRotatedRectangles.cpp     # 🔄 Rotation-specific tests
+├── Output/                           # 📁 Generated executables and output
+│   ├── Images/                       # 🖼️ All PNG output images
+│   ├── CppRectangleRecognition       # 🚀 Main executable
+│   ├── tests                         # 🧪 Test suite executable
+│   ├── TestPerformance               # ⚡ Performance benchmark executable
+│   └── VisualTest                    # 🎨 Visual test executable
 ├── build/                            # 🏗️ Build directory (generated)
 ├── resources/                        # 📸 Demo images and resources
 ├── b                                 # 🔨 Build script
@@ -111,13 +118,13 @@ cd build
 ### Main Application
 
 ```bash
-cd build
-./CppRectangleRecognition input_image.pgm
+cd Output
+./CppRectangleRecognition
 ```
 
-- Input: PGM grayscale images
-- Output: PPM colour images with detected rectangles outlined in red
-- Detected rectangles are displayed with red boundary outlines
+- Input: PGM grayscale images or synthetic test images
+- Output: PNG images in `Output/Images/` with detected rectangles outlined in red
+- Detected rectangles are displayed with 4-pixel thick red boundary outlines
 
 ### Visual Testing Suite
 
@@ -125,14 +132,14 @@ cd build
 ./v  # Runs comprehensive visual tests
 ```
 
-The visual testing suite generates six different test scenarios:
+The visual testing suite generates 6 different test scenarios in `Output/Images/`:
 
-1. **circles_only.png** - Multiple circles (should detect zero rectangles)
-2. **triangles_only.png** - Multiple triangles (should detect zero rectangles)  
-3. **rectangles_only.png** - Multiple axis-aligned rectangles (should detect all)
-4. **mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect only rectangles)
-5. **rotated_rectangles.png** - 22+ rectangles at various angles from 0° to 165° in 15° increments (should detect all rotated rectangles)
-6. **complex_scene.png** - Complex scene with many shapes (should detect only rectangles)
+1. **visual_test_circles_only.png** - Multiple circles (should detect 0 rectangles)
+2. **visual_test_triangles_only.png** - Multiple triangles (should detect 0 rectangles)  
+3. **visual_test_rectangles_only.png** - Multiple axis-aligned rectangles (should detect all)
+4. **visual_test_mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect only rectangles)
+5. **visual_test_rotated_rectangles.png** - 26+ rectangles at various angles from 0° to 180° (should detect all rotated rectangles)
+6. **visual_test_complex_scene.png** - Complex scene with many shapes (should detect only rectangles)
 
 #### Rotated Rectangle Test Details
 
@@ -183,13 +190,7 @@ The project includes comprehensive unit tests and performance benchmarks.
 Run the test suite:
 
 ```bash
-cd build
-make test
-```
-
-Or run tests directly:
-
-```bash
+cd Output
 ./tests
 ```
 
@@ -216,7 +217,7 @@ The project includes a comprehensive performance benchmark tool that measures re
 Run performance benchmarks:
 
 ```bash
-cd build
+cd Output
 ./TestPerformance
 ```
 
@@ -277,15 +278,17 @@ Testing with complex image (many small rectangles)...
 
 The system includes several high-performance optimisations:
 
-- **Compiler Optimizations**: `-O3 -march=native -mtune=native -flto -ffast-math`
-- **Memory Management**: Pre-allocated vectors and caches to minimise dynamic allocation
-- **Parallel Processing**: OpenMP parallelisation for large contour sets
+- **Compiler Optimizations**: `-O3 -march=native -mtune=native -flto -ffast-math -s` with forced Release mode
+- **Memory Management**: Pre-allocated vectors and caches to minimize dynamic allocation
+- **Parallel Processing**: OpenMP parallelization for all critical image processing loops
 - **Algorithm Efficiency**: 
   - Optimised quadrilateral validation with stack arrays
   - Unrolled loops for common quadrilateral cases
   - Single-pass bounding box calculations
   - Early exit conditions for faster rejection
+  - OpenMP `#pragma omp parallel for` on 8+ performance-critical loops
 - **Cache Performance**: Improved data locality and reduced memory access overhead
+- **Build Optimization**: Automatic Release mode selection for maximum runtime performance
 
 ## Configuration
 
@@ -307,8 +310,8 @@ detector.SetApproxEpsilon(0.02); // Contour approximation precision (2% of perim
 
 The application generates:
 - Console output with detected rectangle coordinates and properties
-- `output.ppm`: Raw image output with detected rectangles highlighted
-- `output.png`: PNG version (if ImageMagick is available)
+- `Output/Images/output.png`: PNG image with detected rectangles highlighted in red
+- Interactive visual test images in `Output/Images/visual_test_*.png`
 
 ## License
 

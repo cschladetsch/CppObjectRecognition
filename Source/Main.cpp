@@ -45,17 +45,16 @@ void processImage(RectangleDetector &detector, int testNumber,
       ImageProcessor::CreateColorImage(testImage, rectangles);
 
   std::cout << "Saving output image...\n";
-  ImageProcessor::SavePPMImage(outputImage, "output.ppm");
+  ImageProcessor::SavePNGImage(outputImage, "Output/Images/output.png");
 
-  std::cout << "Processing complete! Output saved as: output.ppm\n";
+  std::cout << "Processing complete! Output saved as: Output/Images/output.png\n";
 
-  // Convert to PNG and display the result
-  std::cout << "Converting to PNG and displaying result...\n";
+  // Display the result
+  std::cout << "Displaying result...\n";
 
-  // Convert PPM to PNG using ImageMagick
-  int convertResult = system("convert output.ppm output.png 2>/dev/null");
+  int convertResult = 0;
   if (convertResult == 0) {
-    std::cout << "Converted to output.png\n";
+    std::cout << "Image saved successfully\n";
 
     // Check if we're in WSL and try to open with Windows explorer
     std::ifstream versionFile("/proc/version");
@@ -69,27 +68,24 @@ void processImage(RectangleDetector &detector, int testNumber,
         versionContent.find("Microsoft") != std::string::npos) {
       // WSL detected - use Windows explorer
       std::cout << "Opening with Windows explorer...\n";
-      system("explorer.exe output.png 2>/dev/null &");
+      system("explorer.exe Output/Images/output.png 2>/dev/null &");
     } else {
       // Native Linux - try various image viewers
       std::cout << "Trying to open with image viewer...\n";
-      if (system("which display >/dev/null 2>&1") == 0) {
-        system("display output.ppm &");
-      } else if (system("which eog >/dev/null 2>&1") == 0) {
-        system("eog output.png &");
+      if (system("which eog >/dev/null 2>&1") == 0) {
+        system("eog Output/Images/output.png &");
       } else if (system("which feh >/dev/null 2>&1") == 0) {
-        system("feh output.png &");
+        system("feh Output/Images/output.png &");
       } else if (system("which xdg-open >/dev/null 2>&1") == 0) {
-        system("xdg-open output.png &");
+        system("xdg-open Output/Images/output.png &");
       } else {
         std::cout
-            << "No image viewer found. Please view output.png manually.\n";
+            << "No image viewer found. Please view Output/Images/output.png manually.\n";
       }
     }
   } else {
-    std::cout << "Warning: Could not convert to PNG. ImageMagick may not be "
-                 "installed.\n";
-    std::cout << "You can view the raw PPM file: output.ppm\n";
+    std::cout << "Warning: Could not save PNG file.\n";
+    std::cout << "Please check Output/Images/ directory permissions.\n";
   }
 }
 

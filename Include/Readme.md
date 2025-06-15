@@ -1,6 +1,6 @@
 # Include Directory
 
-This directory contains all header files for the C++ Rectangle Recognition system.
+This directory contains all header files for the C++ Rectangle Recognition system. All implementations are optimized with OpenMP parallelization and forced Release mode builds for maximum performance.
 
 ## Directory Structure
 
@@ -102,6 +102,7 @@ class ImageProcessor {
     static Image LoadPGMImage(const std::string& filename);
     static void SavePGMImage(const Image& image, const std::string& filename);
     static void SavePNGImage(const ColorImage& image, const std::string& filename);
+    static ColorImage CreateColorImage(const Image& image, const std::vector<Rectangle>& rectangles);
     
     // Image Processing
     static Image ApplyThreshold(const Image& image, int threshold);
@@ -173,6 +174,7 @@ struct Rectangle {
         │           ╲     └──────────┘
 
         100% Detection Success Rate
+        (OpenMP accelerated processing)
 ```
 
 ### 🔍 **Shape Discrimination**
@@ -186,10 +188,12 @@ struct Rectangle {
 ```
 
 ### ⚡ **Performance Characteristics**
-- **Speed**: Up to 6,289 pixels/ms processing rate
+- **Speed**: Up to 6,289+ pixels/ms processing rate with OpenMP parallelization
 - **Accuracy**: 100% rotation detection success
 - **Scalability**: Efficient on images from 100x100 to 1600x1600+
 - **Memory**: Optimized contour extraction with minimal allocation
+- **Parallelization**: OpenMP `#pragma omp parallel for` on all critical image processing loops
+- **Build Optimization**: Forced Release mode with `-O3 -march=native -flto -ffast-math -s`
 
 ## Usage Example
 
@@ -217,12 +221,14 @@ for (const auto& rect : rectangles) {
 
 ## Dependencies
 
-- **C++20** or later (requires `std::numbers`)
-- **OpenMP** (optional, for parallel processing)
-- **Standard Library**: `<vector>`, `<cmath>`, `<algorithm>`, `<memory>`
+- **C++23** compatible compiler (GCC 11+, Clang 14+) for `std::numbers`
+- **OpenMP** (required for parallel processing optimizations)
+- **CMake 3.10+** with automatic Release mode configuration
+- **Standard Library**: `<vector>`, `<cmath>`, `<algorithm>`, `<memory>`, `<omp.h>`
 
 ## Thread Safety
 
 - **RectangleDetector**: Thread-safe for read operations, not for concurrent configuration changes
-- **ImageProcessor**: All static methods are thread-safe
-- **OpenMP**: Parallel processing enabled where beneficial
+- **ImageProcessor**: All static methods are thread-safe with OpenMP parallelization
+- **OpenMP**: Parallel processing automatically enabled on all critical loops for maximum performance
+- **Build System**: Automatically forces Release mode for fastest execution

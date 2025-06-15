@@ -5,12 +5,10 @@ project(CppRectangleRecognition)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optimization flags
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+# Force Release mode for fastest execution
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -flto -ffast-math")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -flto -ffast-math -s")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe")
 

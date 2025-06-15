@@ -2,6 +2,7 @@
 #include "ShapeDetector/RectangleDetector.hpp"
 #include <chrono>
 #include <iostream>
+#include <omp.h>
 #include <vector>
 
 using namespace std::chrono;
@@ -62,6 +63,7 @@ void testPerformance() {
   Image complexImage(1000, 1000);
 
   // Create grid of small rectangles
+#pragma omp parallel for
   for (int y = 10; y < 990; y += 50) {
     for (int x = 10; x < 990; x += 50) {
       // Draw small rectangle

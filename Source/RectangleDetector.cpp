@@ -10,7 +10,7 @@ constexpr double MIN_DISTANCE_SQUARED = 1.0;
 constexpr double MIN_DISTANCE_SQUARED_LARGE = 64.0;
 constexpr double EPSILON_TOLERANCE = 1e-9;
 constexpr double RIGHT_ANGLE = std::numbers::pi / 2.0;
-constexpr double ANGLE_TOLERANCE = 0.7; // ~40 degrees
+constexpr double ANGLE_TOLERANCE = 1.0; // ~57 degrees - tolerant for rotated rectangles
 
 RectangleDetector::RectangleDetector() 
     : minArea_(500.0), maxArea_(10000.0), approxEpsilon_(0.02) {
@@ -194,6 +194,10 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     // Check if it's a valid quadrilateral (parallel sides)
     if (!IsValidQuadrilateral(approx)) return false;
     
+    // Additional check: reject shapes that are too circular
+    // Calculate the convexity defects to detect circular shapes
+    if (IsCircularShape(contour, approx)) return false;
+    
     // Additional check: verify corner angles are close to π/2 radians (90 degrees)
     int validCorners = 0;
     double avgAngleDeviation = 0.0;
@@ -215,8 +219,9 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     }
     avgAngleDeviation *= 0.25; // Divide by 4
     
-    // Early exit optimizations
-    if (validCorners < 4 || avgAngleDeviation > 0.4) {
+    // Early exit optimizations - be more tolerant for rotated rectangles
+    // Allow at least 3 out of 4 corners to be close to 90 degrees
+    if (validCorners < 3 || avgAngleDeviation > 0.5) {
         return false;
     }
     
@@ -240,11 +245,36 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     // For a perfect rectangle, this ratio should be close to 1
     // Allow more tolerance for rotated rectangles (45° rotation gives ~0.71)
-    if (rectangularity < 0.4) {
+    if (rectangularity < 0.25) {
         return false;
     }
     
     return true;
+}
+
+// Helper function to detect circular shapes
+bool RectangleDetector::IsCircularShape(const std::vector<Point>& contour, const std::vector<Point>& approx) const {
+    // Calculate the area ratio between the original contour and its convex hull
+    double contourArea = CalculateArea(contour);
+    double approxArea = CalculateArea(approx);
+    
+    // For circles approximated as 4-sided polygons, the area ratio will be very different
+    if (contourArea > 0 && approxArea > 0) {
+        double areaRatio = contourArea / approxArea;
+        // If the contour area is much larger than the approximated polygon, it's likely a circle
+        if (areaRatio > 1.3) return true;
+    }
+    
+    // Calculate the perimeter-to-area ratio (circularity test)
+    double perimeter = CalculatePerimeter(contour);
+    if (contourArea > 0 && perimeter > 0) {
+        double circularity = (perimeter * perimeter) / (4.0 * std::numbers::pi * contourArea);
+        // Perfect circle has circularity = 1, rectangles have higher values
+        // If circularity is close to 1, it's likely a circle
+        if (circularity < 1.2) return true;
+    }
+    
+    return false;
 }
 
 bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) const {
@@ -272,8 +302,8 @@ bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) con
     const double dot1 = sides[0][0] * sides[2][0] + sides[0][1] * sides[2][1];
     const double dot2 = sides[1][0] * sides[3][0] + sides[1][1] * sides[3][1];
     
-    // Allow some tolerance for rotation and imperfect detection
-    return (std::abs(std::abs(dot1) - 1.0) < 0.3) && (std::abs(std::abs(dot2) - 1.0) < 0.3);
+    // Allow more tolerance for rotation and imperfect detection
+    return (std::abs(std::abs(dot1) - 1.0) < 0.35) && (std::abs(std::abs(dot2) - 1.0) < 0.35);
 }
 
 std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point>& contour, double epsilon) const {
@@ -283,7 +313,7 @@ std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point
     const double perimeter = CalculatePerimeter(contour);
     
     // Start with a smaller epsilon for rotated rectangles
-    std::vector<double> epsilonMultipliers = {0.5, 1.0, 1.5, 2.0, 3.0};
+    std::vector<double> epsilonMultipliers = {0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0};
     
     for (double multiplier : epsilonMultipliers) {
         double epsilonValue = std::max(epsilon * perimeter * multiplier, 3.0);

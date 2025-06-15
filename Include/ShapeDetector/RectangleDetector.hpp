@@ -72,5 +72,6 @@ private:
     double CalculateCornerAngle(const Point& prev, const Point& current, const Point& next) const;
     double CalculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const;
     Point CalculateContourCentroid(const std::vector<Point>& contour) const;
+    bool IsCircularShape(const std::vector<Point>& contour, const std::vector<Point>& approx) const;
 };
 

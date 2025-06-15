@@ -1505,9 +1505,9 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
             double avgSize = (rectangles[i].width + rectangles[i].height + 
                             rectangles[j].width + rectangles[j].height) / 4.0;
             
-            // Enhanced duplicate removal for multiple detection strategies
-            if (centerDist < avgSize * 0.25) {
-                // Check overlap percentage
+            // Aggressive duplicate removal for multi-strategy detection
+            if (centerDist < avgSize * 0.4) {
+                // Check if rectangles are similar enough to be duplicates
                 double sizeRatio = std::min(
                     static_cast<double>(rectangles[i].width * rectangles[i].height),
                     static_cast<double>(rectangles[j].width * rectangles[j].height)
@@ -1516,7 +1516,12 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
                     static_cast<double>(rectangles[j].width * rectangles[j].height)
                 );
                 
-                if (sizeRatio > 0.5) { // Similar size rectangles
+                // Also check angle similarity for rotated rectangles
+                double angleDiff = std::abs(rectangles[i].angle - rectangles[j].angle);
+                while (angleDiff > std::numbers::pi) angleDiff -= std::numbers::pi;
+                angleDiff = std::min(angleDiff, std::numbers::pi - angleDiff);
+                
+                if (sizeRatio > 0.4 || angleDiff < 0.2) { // More aggressive removal
                     toRemove[j] = true; // Remove smaller/later one
                 }
             }

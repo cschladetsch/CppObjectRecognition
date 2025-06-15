@@ -6,6 +6,8 @@ Does not use any libraries, just naked C++.
 
 ## Demo
 
+Rects could be rotated, in this demo image they are not.
+
 ![Demo](resources/Demo.png)
 
 ## Features

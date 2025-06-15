@@ -5,11 +5,19 @@
 #include <queue>
 #include <omp.h>
 #include <numbers>
+#include <unordered_set>
 constexpr double MIN_DISTANCE_SQUARED = 1.0;
 constexpr double MIN_DISTANCE_SQUARED_LARGE = 64.0;
+constexpr double EPSILON_TOLERANCE = 1e-9;
+constexpr double RIGHT_ANGLE = std::numbers::pi / 2.0;
+constexpr double ANGLE_TOLERANCE = 0.7; // ~40 degrees
 
 RectangleDetector::RectangleDetector() 
-    : minArea_(500.0), maxArea_(10000.0), approxEpsilon_(0.02) {}
+    : minArea_(500.0), maxArea_(10000.0), approxEpsilon_(0.02) {
+    // Pre-allocate caches for better performance
+    distanceCache_.reserve(1000);
+    angleCache_.reserve(100);
+}
 
 RectangleDetector::~RectangleDetector() {}
 
@@ -27,17 +35,41 @@ void RectangleDetector::SetApproxEpsilon(double epsilon) {
 
 std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
     std::vector<Rectangle> rectangles;
+    rectangles.reserve(20); // Pre-allocate for typical number of rectangles
     
     Image processed = PreprocessImage(image);
     std::vector<std::vector<Point>> contours = FindContours(processed);
     
-    
-    for (size_t i = 0; i < contours.size(); ++i) {
-        const auto& contour = contours[i];
-        if (IsRectangle(contour)) {
-            Rectangle rect = CreateRectangle(contour);
-            if (rect.width > 0 && rect.height > 0) {
-                rectangles.push_back(rect);
+    // Parallel processing for large number of contours
+    if (contours.size() > 10) {
+        std::vector<Rectangle> tempRectangles(contours.size());
+        std::vector<bool> validRectangles(contours.size(), false);
+        
+        #pragma omp parallel for schedule(dynamic)
+        for (size_t i = 0; i < contours.size(); ++i) {
+            if (IsRectangle(contours[i])) {
+                Rectangle rect = CreateRectangle(contours[i]);
+                if (rect.width > 0 && rect.height > 0) {
+                    tempRectangles[i] = rect;
+                    validRectangles[i] = true;
+                }
+            }
+        }
+        
+        // Collect valid rectangles
+        for (size_t i = 0; i < contours.size(); ++i) {
+            if (validRectangles[i]) {
+                rectangles.push_back(tempRectangles[i]);
+            }
+        }
+    } else {
+        // Sequential processing for small number of contours
+        for (const auto& contour : contours) {
+            if (IsRectangle(contour)) {
+                Rectangle rect = CreateRectangle(contour);
+                if (rect.width > 0 && rect.height > 0) {
+                    rectangles.push_back(rect);
+                }
             }
         }
     }
@@ -101,11 +133,11 @@ void RectangleDetector::ScanlineFillContour(const Image& image, int startX, int 
         ScanlineSegment seg = stack.top();
         stack.pop();
         
-        // Process scanline
+        // Process scanline - batch mark visited pixels for better cache performance
         for (int x = seg.x1; x <= seg.x2; x++) {
             if (!visited[seg.y][x]) {
                 visited[seg.y][x] = true;
-                contour.push_back(Point(x, seg.y));
+                contour.emplace_back(x, seg.y); // Use emplace_back for better performance
             }
         }
         
@@ -165,42 +197,45 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     // Additional check: verify corner angles are close to π/2 radians (90 degrees)
     int validCorners = 0;
     double avgAngleDeviation = 0.0;
+    
+    // Pre-calculate angle deviations for better cache utilization
+    double deviations[4];
     for (int i = 0; i < 4; ++i) {
-        int prev = (i + 3) % 4;
-        int next = (i + 1) % 4;
-        double angle = CalculateCornerAngleFast(approx[prev], approx[i], approx[next]);
+        const int prev = (i + 3) % 4;
+        const int next = (i + 1) % 4;
+        const double angle = CalculateCornerAngleFast(approx[prev], approx[i], approx[next]);
         
-        double deviation = std::abs(angle - std::numbers::pi / 2.0);
-        avgAngleDeviation += deviation;
+        deviations[i] = std::abs(angle - RIGHT_ANGLE);
+        avgAngleDeviation += deviations[i];
         
-        // Rectangle corners should be close to π/2 radians (allow ~0.7 radians tolerance, about 40 degrees)
-        if (deviation < 0.7) {
+        // Rectangle corners should be close to π/2 radians
+        if (deviations[i] < ANGLE_TOLERANCE) {
             validCorners++;
         }
     }
-    avgAngleDeviation /= 4.0;
+    avgAngleDeviation *= 0.25; // Divide by 4
     
-    // Require all 4 corners to be reasonably close to 90 degrees
-    if (validCorners < 4) {
-        return false;
-    }
-    
-    // Additional check: average deviation should be small for true rectangles
-    if (avgAngleDeviation > 0.4) {  // About 23 degrees average
+    // Early exit optimizations
+    if (validCorners < 4 || avgAngleDeviation > 0.4) {
         return false;
     }
     
     // Check rectangularity: compare area with bounding box area
+    // Optimized bounding box calculation with single pass
     int minX = approx[0].x, maxX = approx[0].x;
     int minY = approx[0].y, maxY = approx[0].y;
-    for (const auto& p : approx) {
-        minX = std::min(minX, p.x);
-        maxX = std::max(maxX, p.x);
-        minY = std::min(minY, p.y);
-        maxY = std::max(maxY, p.y);
+    
+    for (size_t i = 1; i < approx.size(); ++i) {
+        const Point& p = approx[i];
+        if (p.x < minX) minX = p.x;
+        else if (p.x > maxX) maxX = p.x;
+        
+        if (p.y < minY) minY = p.y;
+        else if (p.y > maxY) maxY = p.y;
     }
-    double boundingBoxArea = (maxX - minX) * (maxY - minY);
-    double rectangularity = area / boundingBoxArea;
+    
+    const double boundingBoxArea = static_cast<double>(maxX - minX) * (maxY - minY);
+    const double rectangularity = area / boundingBoxArea;
     
     
     // For a perfect rectangle, this ratio should be close to 1
@@ -215,23 +250,27 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
 bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) const {
     if (quad.size() != 4) return false;
     
-    // Calculate vectors for each side
-    std::vector<std::pair<double, double>> sides;
+    // Pre-calculate side vectors for better cache performance
+    double sides[4][2]; // [side][x,y]
+    double lengths[4];
+    
+    // Calculate all sides in one pass
     for (int i = 0; i < 4; ++i) {
-        int next = (i + 1) % 4;
-        double dx = quad[next].x - quad[i].x;
-        double dy = quad[next].y - quad[i].y;
-        double length = std::sqrt(dx * dx + dy * dy);
-        if (length > 0) {
-            sides.push_back({dx / length, dy / length}); // Normalized vector
-        }
+        const int next = (i + 1) % 4;
+        const double dx = quad[next].x - quad[i].x;
+        const double dy = quad[next].y - quad[i].y;
+        lengths[i] = std::sqrt(dx * dx + dy * dy);
+        
+        if (lengths[i] < EPSILON_TOLERANCE) return false; // Degenerate side
+        
+        const double invLength = 1.0 / lengths[i];
+        sides[i][0] = dx * invLength;
+        sides[i][1] = dy * invLength;
     }
     
-    if (sides.size() != 4) return false;
-    
     // Check if opposite sides are roughly parallel (dot product close to ±1)
-    double dot1 = sides[0].first * sides[2].first + sides[0].second * sides[2].second;
-    double dot2 = sides[1].first * sides[3].first + sides[1].second * sides[3].second;
+    const double dot1 = sides[0][0] * sides[2][0] + sides[0][1] * sides[2][1];
+    const double dot2 = sides[1][0] * sides[3][0] + sides[1][1] * sides[3][1];
     
     // Allow some tolerance for rotation and imperfect detection
     return (std::abs(std::abs(dot1) - 1.0) < 0.3) && (std::abs(std::abs(dot2) - 1.0) < 0.3);
@@ -316,12 +355,26 @@ void RectangleDetector::DouglasPeuckerRecursive(const std::vector<Point>& contou
 }
 
 double RectangleDetector::CalculatePerimeter(const std::vector<Point>& contour) const {
+    if (contour.size() < 2) return 0.0;
+    
     double perimeter = 0.0;
-    for (size_t i = 0; i < contour.size(); ++i) {
-        const size_t j = (i + 1) % contour.size();
-        const double dx = contour[j].x - contour[i].x;
-        const double dy = contour[j].y - contour[i].y;
-        perimeter += std::sqrt(dx * dx + dy * dy);
+    const size_t n = contour.size();
+    
+    // Unroll small loops for better performance
+    if (n == 4) {
+        for (int i = 0; i < 4; ++i) {
+            const int j = (i + 1) % 4;
+            const double dx = contour[j].x - contour[i].x;
+            const double dy = contour[j].y - contour[i].y;
+            perimeter += std::sqrt(dx * dx + dy * dy);
+        }
+    } else {
+        for (size_t i = 0; i < n; ++i) {
+            const size_t j = (i + 1) % n;
+            const double dx = contour[j].x - contour[i].x;
+            const double dy = contour[j].y - contour[i].y;
+            perimeter += std::sqrt(dx * dx + dy * dy);
+        }
     }
     return perimeter;
 }
@@ -331,23 +384,32 @@ double RectangleDetector::CalculateArea(const std::vector<Point>& contour) const
     
     double area = 0.0;
     const size_t n = contour.size();
-    for (size_t i = 0; i < n; ++i) {
-        const size_t j = (i + 1) % n;
-        area += contour[i].x * contour[j].y - contour[j].x * contour[i].y;
+    
+    // Optimized for common case of quadrilaterals
+    if (n == 4) {
+        area = static_cast<double>(contour[0].x) * contour[1].y - static_cast<double>(contour[1].x) * contour[0].y +
+               static_cast<double>(contour[1].x) * contour[2].y - static_cast<double>(contour[2].x) * contour[1].y +
+               static_cast<double>(contour[2].x) * contour[3].y - static_cast<double>(contour[3].x) * contour[2].y +
+               static_cast<double>(contour[3].x) * contour[0].y - static_cast<double>(contour[0].x) * contour[3].y;
+    } else {
+        for (size_t i = 0; i < n; ++i) {
+            const size_t j = (i + 1) % n;
+            area += static_cast<double>(contour[i].x) * contour[j].y - static_cast<double>(contour[j].x) * contour[i].y;
+        }
     }
     return std::abs(area) * 0.5;
 }
 
 
 double RectangleDetector::PointToLineDistanceSquared(const Point& point, const Point& lineStart, const Point& lineEnd) const {
-    double A = lineEnd.y - lineStart.y;
-    double B = lineStart.x - lineEnd.x;
-    double C = lineEnd.x * lineStart.y - lineStart.x * lineEnd.y;
+    const double A = lineEnd.y - lineStart.y;
+    const double B = lineStart.x - lineEnd.x;
+    const double C = static_cast<double>(lineEnd.x) * lineStart.y - static_cast<double>(lineStart.x) * lineEnd.y;
     
-    double denominatorSquared = A * A + B * B;
-    if (denominatorSquared == 0) return 0;
+    const double denominatorSquared = A * A + B * B;
+    if (denominatorSquared < EPSILON_TOLERANCE) return 0.0;
     
-    double distance = A * point.x + B * point.y + C;
+    const double distance = A * point.x + B * point.y + C;
     return (distance * distance) / denominatorSquared;
 }
 

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
-#include "shape_detector/rectangle_detector.h"
-#include "shape_detector/image_processor.h"
+#include "shape_detector/RectangleDetector.h"
+#include "shape_detector/ImageProcessor.h"
 
 using namespace std::chrono;
 

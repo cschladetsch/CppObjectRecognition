@@ -11,10 +11,10 @@ if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-include_directories(include)
+include_directories(Include)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
+file(GLOB_RECURSE SOURCES "Source/*.cpp")
+file(GLOB_RECURSE HEADERS "Include/*.h" "Include/*.hpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
@@ -24,7 +24,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 # GTest configuration
-if(EXISTS "${CMAKE_SOURCE_DIR}/test")
+if(EXISTS "${CMAKE_SOURCE_DIR}/Test")
     enable_testing()
     
     # Find GTest
@@ -43,11 +43,11 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/test")
     endif()
     
     # Create test executable
-    file(GLOB_RECURSE TEST_SOURCES "test/*.cpp")
+    file(GLOB_RECURSE TEST_SOURCES "Test/*.cpp")
     if(TEST_SOURCES)
         # Remove main.cpp from library sources for tests
         set(LIB_SOURCES ${SOURCES})
-        list(REMOVE_ITEM LIB_SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp")
+        list(REMOVE_ITEM LIB_SOURCES "${CMAKE_SOURCE_DIR}/Source/Main.cpp")
         
         add_executable(tests ${TEST_SOURCES} ${LIB_SOURCES})
         

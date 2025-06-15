@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "shape_detector/rectangle_detector.h"
-#include "shape_detector/image_processor.h"
+#include "shape_detector/RectangleDetector.h"
+#include "shape_detector/ImageProcessor.h"
 
 class RectangleDetectorTest : public ::testing::Test {
 protected:

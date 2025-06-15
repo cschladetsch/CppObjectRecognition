@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "shape_detector/image_processor.h"
+#include "shape_detector/ImageProcessor.h"
 #include <fstream>
 
 class ImageProcessorTest : public ::testing::Test {

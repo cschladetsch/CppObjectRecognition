@@ -1,4 +1,4 @@
-#include "shape_detector/image_processor.h"
+#include "shape_detector/ImageProcessor.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>

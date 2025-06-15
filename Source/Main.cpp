@@ -10,10 +10,10 @@
 void processImage(RectangleDetector& detector, int testNumber) {
     std::cout << "\n=== Test " << testNumber << " ===\n";
     std::cout << "Creating test image with rectangles...\n";
-    Image testImage = ImageProcessor::createTestImage(400, 300);
+    Image testImage = ImageProcessor::CreateTestImage(400, 300);
     
     std::cout << "Detecting rectangles...\n";
-    std::vector<Rectangle> rectangles = detector.detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector.DetectRectangles(testImage);
     
     std::cout << "Found " << rectangles.size() << " rectangles:\n";
     
@@ -30,10 +30,10 @@ void processImage(RectangleDetector& detector, int testNumber) {
     }
     
     std::cout << "Creating color output image with detected rectangles...\n";
-    ColorImage outputImage = ImageProcessor::createColorImage(testImage, rectangles);
+    ColorImage outputImage = ImageProcessor::CreateColorImage(testImage, rectangles);
     
     std::cout << "Saving output image...\n";
-    ImageProcessor::savePPMImage(outputImage, "output.ppm");
+    ImageProcessor::SavePPMImage(outputImage, "output.ppm");
     
     std::cout << "Processing complete! Output saved as: output.ppm\n";
     
@@ -110,9 +110,9 @@ int main() {
     std::cout << "Press SPACE to generate new test, 'q' to quit\n\n";
     
     RectangleDetector detector;
-    detector.setMinArea(200.0);
-    detector.setMaxArea(8000.0);
-    detector.setApproxEpsilon(0.05);
+    detector.SetMinArea(200.0);
+    detector.SetMaxArea(8000.0);
+    detector.SetApproxEpsilon(0.05);
     
     int testNumber = 1;
     

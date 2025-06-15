@@ -10,7 +10,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-Image ImageProcessor::loadPGMImage(const std::string& filepath) {
+Image ImageProcessor::LoadPGMImage(const std::string& filepath) {
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Cannot open file: " << filepath << std::endl;
@@ -43,7 +43,7 @@ Image ImageProcessor::loadPGMImage(const std::string& filepath) {
 }
 
 
-void ImageProcessor::savePGMImage(const Image& image, const std::string& filepath) {
+void ImageProcessor::SavePGMImage(const Image& image, const std::string& filepath) {
     std::ofstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Cannot create file: " << filepath << std::endl;
@@ -62,7 +62,7 @@ void ImageProcessor::savePGMImage(const Image& image, const std::string& filepat
     }
 }
 
-void ImageProcessor::savePPMImage(const ColorImage& image, const std::string& filepath) {
+void ImageProcessor::SavePPMImage(const ColorImage& image, const std::string& filepath) {
     std::ofstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Cannot create file: " << filepath << std::endl;
@@ -83,7 +83,7 @@ void ImageProcessor::savePPMImage(const ColorImage& image, const std::string& fi
     }
 }
 
-ColorImage ImageProcessor::createColorImage(const Image& grayImage, const std::vector<Rectangle>& rectangles) {
+ColorImage ImageProcessor::CreateColorImage(const Image& grayImage, const std::vector<Rectangle>& rectangles) {
     ColorImage colorImage(grayImage.width, grayImage.height);
     
     // Convert grayscale to color (white pixels become grey, black stays black)
@@ -102,14 +102,14 @@ ColorImage ImageProcessor::createColorImage(const Image& grayImage, const std::v
     
     // Draw red rectangle boundaries
     for (const auto& rect : rectangles) {
-        std::vector<Point> corners = generateRectangleCorners(rect);
+        std::vector<Point> corners = GenerateRectangleCorners(rect);
         
         // Draw lines between consecutive corners in red
         for (size_t i = 0; i < 4; ++i) {
             Point p1 = corners[i];
             Point p2 = corners[(i + 1) % 4];
             
-            drawColorLine(colorImage, p1, p2, ColorPixel(255, 0, 0)); // Red color
+            DrawColorLine(colorImage, p1, p2, ColorPixel(255, 0, 0)); // Red color
         }
     }
     
@@ -117,7 +117,7 @@ ColorImage ImageProcessor::createColorImage(const Image& grayImage, const std::v
 }
 
 
-Image ImageProcessor::applyThreshold(const Image& image, int threshold) {
+Image ImageProcessor::ApplyThreshold(const Image& image, int threshold) {
     Image result = image;
     
     for (int y = 0; y < result.height; ++y) {
@@ -129,10 +129,10 @@ Image ImageProcessor::applyThreshold(const Image& image, int threshold) {
     return result;
 }
 
-Image ImageProcessor::applyGaussianBlur(const Image& image, int kernelSize) {
+Image ImageProcessor::ApplyGaussianBlur(const Image& image, int kernelSize) {
     if (kernelSize % 2 == 0) kernelSize++;
     
-    std::vector<std::vector<double>> kernel = createGaussianKernel(kernelSize);
+    std::vector<std::vector<double>> kernel = CreateGaussianKernel(kernelSize);
     Image result(image.width, image.height);
     
     int halfKernel = kernelSize / 2;
@@ -154,22 +154,22 @@ Image ImageProcessor::applyGaussianBlur(const Image& image, int kernelSize) {
     return result;
 }
 
-void ImageProcessor::drawRectangles(Image& image, const std::vector<Rectangle>& rectangles) {
+void ImageProcessor::DrawRectangles(Image& image, const std::vector<Rectangle>& rectangles) {
     for (const auto& rect : rectangles) {
         // Generate corners from center, width, height, and angle
-        std::vector<Point> corners = generateRectangleCorners(rect);
+        std::vector<Point> corners = GenerateRectangleCorners(rect);
         
         // Draw lines between consecutive corners
         for (size_t i = 0; i < 4; ++i) {
             Point p1 = corners[i];
             Point p2 = corners[(i + 1) % 4];
             
-            drawLine(image, p1, p2);
+            DrawLine(image, p1, p2);
         }
     }
 }
 
-std::vector<Point> ImageProcessor::generateRectangleCorners(const Rectangle& rect) {
+std::vector<Point> ImageProcessor::GenerateRectangleCorners(const Rectangle& rect) {
     std::vector<Point> corners;
     
     double angleRad = rect.angle * M_PI / 180.0;
@@ -198,7 +198,7 @@ std::vector<Point> ImageProcessor::generateRectangleCorners(const Rectangle& rec
     return corners;
 }
 
-std::vector<Point> ImageProcessor::cleanupRectangleCorners(const std::vector<Point>& corners) {
+std::vector<Point> ImageProcessor::CleanupRectangleCorners(const std::vector<Point>& corners) {
     if (corners.empty()) return corners;
     
     std::vector<Point> cleaned;
@@ -227,7 +227,7 @@ std::vector<Point> ImageProcessor::cleanupRectangleCorners(const std::vector<Poi
     return cleaned;
 }
 
-void ImageProcessor::drawLine(Image& image, const Point& p1, const Point& p2) {
+void ImageProcessor::DrawLine(Image& image, const Point& p1, const Point& p2) {
     // Bresenham's line algorithm
     int dx = std::abs(p2.x - p1.x);
     int dy = std::abs(p2.y - p1.y);
@@ -256,7 +256,7 @@ void ImageProcessor::drawLine(Image& image, const Point& p1, const Point& p2) {
     }
 }
 
-void ImageProcessor::drawColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color) {
+void ImageProcessor::DrawColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color) {
     // Bresenham's line algorithm for color images
     int dx = std::abs(p2.x - p1.x);
     int dy = std::abs(p2.y - p1.y);
@@ -285,7 +285,7 @@ void ImageProcessor::drawColorLine(ColorImage& image, const Point& p1, const Poi
     }
 }
 
-Image ImageProcessor::createTestImage(int width, int height) {
+Image ImageProcessor::CreateTestImage(int width, int height) {
     Image image(width, height);
     
     // Fill with black background
@@ -363,13 +363,13 @@ Image ImageProcessor::createTestImage(int width, int height) {
     
     // Draw all non-overlapping rectangles
     for (const auto& rect : rectangles) {
-        createRotatedRectangle(image, rect.centerX, rect.centerY, rect.width, rect.height, rect.angle);
+        CreateRotatedRectangle(image, rect.centerX, rect.centerY, rect.width, rect.height, rect.angle);
     }
     
     return image;
 }
 
-void ImageProcessor::createRotatedRectangle(Image& image, int centerX, int centerY, 
+void ImageProcessor::CreateRotatedRectangle(Image& image, int centerX, int centerY, 
                                           int rectWidth, int rectHeight, double angleDegrees) {
     double angleRad = angleDegrees * M_PI / 180.0;
     double cosAngle = std::cos(angleRad);
@@ -392,10 +392,10 @@ void ImageProcessor::createRotatedRectangle(Image& image, int centerX, int cente
     }
     
     // Fill the rotated rectangle using scan line algorithm
-    fillRotatedRectangle(image, rotatedCorners);
+    FillRotatedRectangle(image, rotatedCorners);
 }
 
-void ImageProcessor::fillRotatedRectangle(Image& image, const std::vector<std::pair<int, int>>& corners) {
+void ImageProcessor::FillRotatedRectangle(Image& image, const std::vector<std::pair<int, int>>& corners) {
     if (corners.size() != 4) return;
     
     // Find bounding box
@@ -418,14 +418,14 @@ void ImageProcessor::fillRotatedRectangle(Image& image, const std::vector<std::p
     // For each point in bounding box, check if it's inside the rectangle
     for (int y = minY; y <= maxY; ++y) {
         for (int x = minX; x <= maxX; ++x) {
-            if (isPointInPolygon(x, y, corners)) {
+            if (IsPointInPolygon(x, y, corners)) {
                 image.pixels[y][x] = 255;
             }
         }
     }
 }
 
-bool ImageProcessor::isPointInPolygon(int x, int y, const std::vector<std::pair<int, int>>& polygon) {
+bool ImageProcessor::IsPointInPolygon(int x, int y, const std::vector<std::pair<int, int>>& polygon) {
     int n = polygon.size();
     bool inside = false;
     
@@ -441,7 +441,7 @@ bool ImageProcessor::isPointInPolygon(int x, int y, const std::vector<std::pair<
     return inside;
 }
 
-std::vector<std::vector<double>> ImageProcessor::createGaussianKernel(int size) {
+std::vector<std::vector<double>> ImageProcessor::CreateGaussianKernel(int size) {
     std::vector<std::vector<double>> kernel(size, std::vector<double>(size));
     double sigma = size / 3.0;
     double sum = 0.0;

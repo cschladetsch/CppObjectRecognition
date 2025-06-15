@@ -29,7 +29,7 @@ protected:
 };
 
 TEST_F(ImageProcessorTest, LoadsPGMImageCorrectly) {
-    Image image = ImageProcessor::loadPGMImage("test_input.pgm");
+    Image image = ImageProcessor::LoadPGMImage("test_input.pgm");
     
     EXPECT_EQ(image.width, 8);
     EXPECT_EQ(image.height, 6);
@@ -46,7 +46,7 @@ TEST_F(ImageProcessorTest, SavesPGMImageCorrectly) {
         }
     }
     
-    ImageProcessor::savePGMImage(testImage, "test_output.pgm");
+    ImageProcessor::SavePGMImage(testImage, "test_output.pgm");
     
     std::ifstream file("test_output.pgm", std::ios::binary);
     EXPECT_TRUE(file.is_open());
@@ -74,7 +74,7 @@ TEST_F(ImageProcessorTest, AppliesThresholdCorrectly) {
         }
     }
     
-    Image result = ImageProcessor::applyThreshold(testImage, 127);
+    Image result = ImageProcessor::ApplyThreshold(testImage, 127);
     
     EXPECT_EQ(result.pixels[0][0], 0);   // 0 < 127
     EXPECT_EQ(result.pixels[0][1], 0);   // 50 < 127
@@ -85,7 +85,7 @@ TEST_F(ImageProcessorTest, AppliesThresholdCorrectly) {
 }
 
 TEST_F(ImageProcessorTest, CreatesTestImageWithCorrectDimensions) {
-    Image testImage = ImageProcessor::createTestImage(100, 80);
+    Image testImage = ImageProcessor::CreateTestImage(100, 80);
     
     EXPECT_EQ(testImage.width, 100);
     EXPECT_EQ(testImage.height, 80);
@@ -94,7 +94,7 @@ TEST_F(ImageProcessorTest, CreatesTestImageWithCorrectDimensions) {
 }
 
 TEST_F(ImageProcessorTest, TestImageHasWhiteRectanglesOnBlackBackground) {
-    Image testImage = ImageProcessor::createTestImage(100, 80);
+    Image testImage = ImageProcessor::CreateTestImage(100, 80);
     
     bool hasBlackPixels = false;
     bool hasWhitePixels = false;
@@ -127,7 +127,7 @@ TEST_F(ImageProcessorTest, DrawsRectanglesOnImage) {
     rect.angle = 0.0;
     rectangles.push_back(rect);
     
-    ImageProcessor::drawRectangles(testImage, rectangles);
+    ImageProcessor::DrawRectangles(testImage, rectangles);
     
     // Check that some pixels were modified to draw the rectangle outline
     // Since we started with black background (0), drawing should change pixels to white (255)

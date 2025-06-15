@@ -14,28 +14,28 @@ RectangleDetector::RectangleDetector()
 
 RectangleDetector::~RectangleDetector() {}
 
-void RectangleDetector::setMinArea(double minArea) {
+void RectangleDetector::SetMinArea(double minArea) {
     minArea_ = minArea;
 }
 
-void RectangleDetector::setMaxArea(double maxArea) {
+void RectangleDetector::SetMaxArea(double maxArea) {
     maxArea_ = maxArea;
 }
 
-void RectangleDetector::setApproxEpsilon(double epsilon) {
+void RectangleDetector::SetApproxEpsilon(double epsilon) {
     approxEpsilon_ = epsilon;
 }
 
-std::vector<Rectangle> RectangleDetector::detectRectangles(const Image& image) {
+std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
     std::vector<Rectangle> rectangles;
     
-    Image processed = preprocessImage(image);
-    std::vector<std::vector<Point>> contours = findContours(processed);
+    Image processed = PreprocessImage(image);
+    std::vector<std::vector<Point>> contours = FindContours(processed);
     
     
     for (const auto& contour : contours) {
-        if (isRectangle(contour)) {
-            Rectangle rect = createRectangle(contour);
+        if (IsRectangle(contour)) {
+            Rectangle rect = CreateRectangle(contour);
             if (rect.width > 0 && rect.height > 0) {
                 rectangles.push_back(rect);
             }
@@ -45,7 +45,7 @@ std::vector<Rectangle> RectangleDetector::detectRectangles(const Image& image) {
     return rectangles;
 }
 
-Image RectangleDetector::preprocessImage(const Image& image) const {
+Image RectangleDetector::PreprocessImage(const Image& image) const {
     Image result = image;
     
     #pragma omp parallel for
@@ -58,7 +58,7 @@ Image RectangleDetector::preprocessImage(const Image& image) const {
     return result;
 }
 
-std::vector<std::vector<Point>> RectangleDetector::findContours(const Image& image) const {
+std::vector<std::vector<Point>> RectangleDetector::FindContours(const Image& image) const {
     std::vector<std::vector<Point>> contours;
     contours.reserve(100);  // Pre-allocate for typical number of contours
     std::vector<std::vector<bool>> visited(image.height, std::vector<bool>(image.width, false));
@@ -69,11 +69,11 @@ std::vector<std::vector<Point>> RectangleDetector::findContours(const Image& ima
             if (!visited[y][x] && image.pixels[y][x] == 255) {
                 std::vector<Point> region;
                 region.reserve(1000);  // Pre-allocate for typical region size
-                scanlineFillContour(image, x, y, region, visited);
+                ScanlineFillContour(image, x, y, region, visited);
                 
                 if (region.size() >= 50) { // Minimum size for a rectangle
                     // Convert filled region to boundary contour
-                    std::vector<Point> boundary = extractBoundary(region, image);
+                    std::vector<Point> boundary = ExtractBoundary(region, image);
                     if (boundary.size() >= 8) {
                         contours.push_back(std::move(boundary));
                     }
@@ -85,7 +85,7 @@ std::vector<std::vector<Point>> RectangleDetector::findContours(const Image& ima
     return contours;
 }
 
-void RectangleDetector::scanlineFillContour(const Image& image, int startX, int startY, 
+void RectangleDetector::ScanlineFillContour(const Image& image, int startX, int startY, 
                                        std::vector<Point>& contour, std::vector<std::vector<bool>>& visited) const {
     // Efficient scanline flood fill algorithm
     std::stack<ScanlineSegment> stack;
@@ -136,19 +136,19 @@ void RectangleDetector::scanlineFillContour(const Image& image, int startX, int 
     }
 }
 
-bool RectangleDetector::isRectangle(const std::vector<Point>& contour) const {
+bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     if (contour.size() < 4) return false;
     
-    std::vector<Point> approx = approximateContour(contour, approxEpsilon_);
+    std::vector<Point> approx = ApproximateContour(contour, approxEpsilon_);
     
     // Allow 4 to 6 points (rotated rectangles might have extra vertices)
     if (approx.size() < 4 || approx.size() > 6) return false;
     
-    double area = calculateArea(approx);
+    double area = CalculateArea(approx);
     return area >= minArea_ && area <= maxArea_;
 }
 
-bool RectangleDetector::isValidQuadrilateral(const std::vector<Point>& quad) const {
+bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) const {
     if (quad.size() != 4) return false;
     
     // Calculate vectors for each side
@@ -173,19 +173,19 @@ bool RectangleDetector::isValidQuadrilateral(const std::vector<Point>& quad) con
     return (std::abs(std::abs(dot1) - 1.0) < 0.3) && (std::abs(std::abs(dot2) - 1.0) < 0.3);
 }
 
-std::vector<Point> RectangleDetector::approximateContour(const std::vector<Point>& contour, double epsilon) const {
+std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point>& contour, double epsilon) const {
     if (contour.size() < 4) return contour;
     
     // Use direct Douglas-Peucker on the contour for better results with rotated rectangles
     std::vector<Point> approx;
     approx.reserve(8);  // Pre-allocate for typical polygon
-    const double perimeter = calculatePerimeter(contour);
+    const double perimeter = CalculatePerimeter(contour);
     double epsilonValue = std::max(epsilon * perimeter, 5.0);
     
     std::vector<bool> keep(contour.size(), false);
     keep[0] = keep[contour.size() - 1] = true;
     
-    douglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
+    DouglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
     
     for (size_t i = 0; i < contour.size(); ++i) {
         if (keep[i]) {
@@ -199,7 +199,7 @@ std::vector<Point> RectangleDetector::approximateContour(const std::vector<Point
         std::fill(keep.begin(), keep.end(), false);
         keep[0] = keep[contour.size() - 1] = true;
         
-        douglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
+        DouglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
         
         for (size_t i = 0; i < contour.size(); ++i) {
             if (keep[i]) {
@@ -211,7 +211,7 @@ std::vector<Point> RectangleDetector::approximateContour(const std::vector<Point
     return approx;
 }
 
-void RectangleDetector::douglasPeuckerRecursive(const std::vector<Point>& contour, int start, int end,
+void RectangleDetector::DouglasPeuckerRecursive(const std::vector<Point>& contour, int start, int end,
                                               double epsilon, std::vector<bool>& keep) const {
     if (end - start <= 1) return;
     
@@ -219,7 +219,7 @@ void RectangleDetector::douglasPeuckerRecursive(const std::vector<Point>& contou
     int maxIndex = start;
     
     for (int i = start + 1; i < end; ++i) {
-        double distSquared = pointToLineDistanceSquared(contour[i], contour[start], contour[end]);
+        double distSquared = PointToLineDistanceSquared(contour[i], contour[start], contour[end]);
         if (distSquared > maxDist) {
             maxDist = distSquared;
             maxIndex = i;
@@ -228,12 +228,12 @@ void RectangleDetector::douglasPeuckerRecursive(const std::vector<Point>& contou
     
     if (maxDist > epsilon * epsilon) {
         keep[maxIndex] = true;
-        douglasPeuckerRecursive(contour, start, maxIndex, epsilon, keep);
-        douglasPeuckerRecursive(contour, maxIndex, end, epsilon, keep);
+        DouglasPeuckerRecursive(contour, start, maxIndex, epsilon, keep);
+        DouglasPeuckerRecursive(contour, maxIndex, end, epsilon, keep);
     }
 }
 
-double RectangleDetector::calculatePerimeter(const std::vector<Point>& contour) const {
+double RectangleDetector::CalculatePerimeter(const std::vector<Point>& contour) const {
     double perimeter = 0.0;
     for (size_t i = 0; i < contour.size(); ++i) {
         const size_t j = (i + 1) % contour.size();
@@ -244,7 +244,7 @@ double RectangleDetector::calculatePerimeter(const std::vector<Point>& contour) 
     return perimeter;
 }
 
-double RectangleDetector::calculateArea(const std::vector<Point>& contour) const {
+double RectangleDetector::CalculateArea(const std::vector<Point>& contour) const {
     if (contour.size() < 3) return 0.0;
     
     double area = 0.0;
@@ -257,7 +257,7 @@ double RectangleDetector::calculateArea(const std::vector<Point>& contour) const
 }
 
 
-double RectangleDetector::pointToLineDistanceSquared(const Point& point, const Point& lineStart, const Point& lineEnd) const {
+double RectangleDetector::PointToLineDistanceSquared(const Point& point, const Point& lineStart, const Point& lineEnd) const {
     double A = lineEnd.y - lineStart.y;
     double B = lineStart.x - lineEnd.x;
     double C = lineEnd.x * lineStart.y - lineStart.x * lineEnd.y;
@@ -269,13 +269,13 @@ double RectangleDetector::pointToLineDistanceSquared(const Point& point, const P
     return (distance * distance) / denominatorSquared;
 }
 
-Rectangle RectangleDetector::createRectangle(const std::vector<Point>& contour) const {
+Rectangle RectangleDetector::CreateRectangle(const std::vector<Point>& contour) const {
     Rectangle rect;
     
-    std::vector<Point> approx = approximateContour(contour, approxEpsilon_);
+    std::vector<Point> approx = ApproximateContour(contour, approxEpsilon_);
     
     // Clean up the approximation - remove duplicate points
-    std::vector<Point> cleanCorners = cleanupCorners(approx);
+    std::vector<Point> cleanCorners = CleanupCorners(approx);
     
     // Try to form a proper rectangle with 4 corners
     if (cleanCorners.size() < 3) {
@@ -284,7 +284,7 @@ Rectangle RectangleDetector::createRectangle(const std::vector<Point>& contour) 
     } else if (cleanCorners.size() == 3) {
         return rect;
     } else if (cleanCorners.size() > 4) {
-        auto bestCorners = selectBestCorners(cleanCorners);
+        auto bestCorners = SelectBestCorners(cleanCorners);
         cleanCorners.clear();
         for (const auto& corner : bestCorners) {
             if (corner.x != 0 || corner.y != 0) {  // Check for valid corner
@@ -298,7 +298,7 @@ Rectangle RectangleDetector::createRectangle(const std::vector<Point>& contour) 
     
     if (cleanCorners.size() == 4) {
         // Calculate center using contour centroid for better accuracy with rotated rectangles
-        Point centroid = calculateContourCentroid(contour);
+        Point centroid = CalculateContourCentroid(contour);
         rect.center = centroid;
         
         std::vector<double> edgeLengths;
@@ -337,7 +337,7 @@ Rectangle RectangleDetector::createRectangle(const std::vector<Point>& contour) 
     return rect;
 }
 
-std::vector<Point> RectangleDetector::cleanupCorners(const std::vector<Point>& corners) const {
+std::vector<Point> RectangleDetector::CleanupCorners(const std::vector<Point>& corners) const {
     const double minDistanceSquared = corners.size() <= 4 ? MIN_DISTANCE_SQUARED : MIN_DISTANCE_SQUARED_LARGE;
     std::vector<Point> cleaned;
     cleaned.reserve(corners.size());
@@ -364,7 +364,7 @@ std::vector<Point> RectangleDetector::cleanupCorners(const std::vector<Point>& c
     return cleaned;
 }
 
-std::array<Point, 4> RectangleDetector::selectBestCorners(const std::vector<Point>& corners) const {
+std::array<Point, 4> RectangleDetector::SelectBestCorners(const std::vector<Point>& corners) const {
     std::array<Point, 4> result = {Point(), Point(), Point(), Point()};
     
     if (corners.size() <= 4) {
@@ -375,7 +375,7 @@ std::array<Point, 4> RectangleDetector::selectBestCorners(const std::vector<Poin
     }
     
     // Find the convex hull to get the outermost points
-    std::vector<Point> hull = convexHull(corners);
+    std::vector<Point> hull = ConvexHull(corners);
     
     if (hull.size() == 4) {
         std::copy(hull.begin(), hull.end(), result.begin());
@@ -391,7 +391,7 @@ std::array<Point, 4> RectangleDetector::selectBestCorners(const std::vector<Poin
             size_t next = (i + 1) % hull.size();
             
             // Calculate angle at this point
-            double angle = calculateCornerAngleFast(hull[prev], hull[i], hull[next]);
+            double angle = CalculateCornerAngleFast(hull[prev], hull[i], hull[next]);
             angleCorners.push_back({angle, hull[i]});
         }
         
@@ -407,14 +407,14 @@ std::array<Point, 4> RectangleDetector::selectBestCorners(const std::vector<Poin
         }
         
         // Sort them in proper order around the shape
-        auto sorted = sortBoundaryPointsRadix(std::move(bestCorners));
+        auto sorted = SortBoundaryPointsRadix(std::move(bestCorners));
         std::copy(sorted.begin(), sorted.end(), result.begin());
     }
     
     return result;
 }
 
-double RectangleDetector::calculateCornerAngle(const Point& prev, const Point& current, const Point& next) const {
+double RectangleDetector::CalculateCornerAngle(const Point& prev, const Point& current, const Point& next) const {
     double dx1 = prev.x - current.x;
     double dy1 = prev.y - current.y;
     double dx2 = next.x - current.x;
@@ -429,7 +429,7 @@ double RectangleDetector::calculateCornerAngle(const Point& prev, const Point& c
     return angleDiff;
 }
 
-double RectangleDetector::calculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const {
+double RectangleDetector::CalculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const {
     double dx1 = prev.x - current.x;
     double dy1 = prev.y - current.y;
     double dx2 = next.x - current.x;
@@ -447,7 +447,7 @@ double RectangleDetector::calculateCornerAngleFast(const Point& prev, const Poin
     return (cross * cross) / denominator;
 }
 
-std::vector<Point> RectangleDetector::extractBoundary(const std::vector<Point>& region, const Image& image) const {
+std::vector<Point> RectangleDetector::ExtractBoundary(const std::vector<Point>& region, const Image& image) const {
     std::vector<Point> boundary;
     boundary.reserve(region.size() / 4);  // Typical boundary is ~1/4 of region
     
@@ -479,13 +479,13 @@ std::vector<Point> RectangleDetector::extractBoundary(const std::vector<Point>& 
     
     // Sort boundary points to form a proper contour
     if (boundary.size() > 0) {
-        return sortBoundaryPointsRadix(std::move(boundary));
+        return SortBoundaryPointsRadix(std::move(boundary));
     }
     
     return boundary;
 }
 
-std::vector<Point> RectangleDetector::sortBoundaryPointsRadix(std::vector<Point> boundary) const {
+std::vector<Point> RectangleDetector::SortBoundaryPointsRadix(std::vector<Point> boundary) const {
     if (boundary.size() < 3) return boundary;
     
     // Find centroid
@@ -517,7 +517,7 @@ std::vector<Point> RectangleDetector::sortBoundaryPointsRadix(std::vector<Point>
     return boundary;
 }
 
-Point RectangleDetector::calculateContourCentroid(const std::vector<Point>& contour) const {
+Point RectangleDetector::CalculateContourCentroid(const std::vector<Point>& contour) const {
     if (contour.empty()) {
         return Point(0, 0);
     }
@@ -550,7 +550,7 @@ Point RectangleDetector::calculateContourCentroid(const std::vector<Point>& cont
     return Point(static_cast<int>(centroidX * factor), static_cast<int>(centroidY * factor));
 }
 
-std::vector<Point> RectangleDetector::convexHull(std::vector<Point> points) const {
+std::vector<Point> RectangleDetector::ConvexHull(std::vector<Point> points) const {
     if (points.size() < 3) return points;
     
     std::vector<Point> sortedPoints = points;
@@ -564,7 +564,7 @@ std::vector<Point> RectangleDetector::convexHull(std::vector<Point> points) cons
     std::vector<Point> lower;
     lower.reserve(sortedPoints.size() / 2);
     for (const auto& p : sortedPoints) {
-        while (lower.size() >= 2 && cross(lower[lower.size()-2], lower[lower.size()-1], p) <= 0) {
+        while (lower.size() >= 2 && Cross(lower[lower.size()-2], lower[lower.size()-1], p) <= 0) {
             lower.pop_back();
         }
         lower.push_back(p);
@@ -574,7 +574,7 @@ std::vector<Point> RectangleDetector::convexHull(std::vector<Point> points) cons
     std::vector<Point> upper;
     upper.reserve(sortedPoints.size() / 2);
     for (auto it = sortedPoints.rbegin(); it != sortedPoints.rend(); ++it) {
-        while (upper.size() >= 2 && cross(upper[upper.size()-2], upper[upper.size()-1], *it) <= 0) {
+        while (upper.size() >= 2 && Cross(upper[upper.size()-2], upper[upper.size()-1], *it) <= 0) {
             upper.pop_back();
         }
         upper.push_back(*it);
@@ -590,6 +590,6 @@ std::vector<Point> RectangleDetector::convexHull(std::vector<Point> points) cons
     return lower;
 }
 
-double RectangleDetector::cross(const Point& O, const Point& A, const Point& B) const {
+double RectangleDetector::Cross(const Point& O, const Point& A, const Point& B) const {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
 }

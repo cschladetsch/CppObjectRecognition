@@ -17,23 +17,36 @@ void testPerformance() {
         std::cout << "Testing with image size: " << size << "x" << size << "\n";
         
         // Create test image with multiple rectangles
-        Image testImage = ImageProcessor::createTestImage(size, size);
+        Image testImage = ImageProcessor::CreateTestImage(size, size);
         
         // Create detector
         RectangleDetector detector;
-        detector.setMinArea(100.0);
-        detector.setMaxArea(size * size * 0.5);
+        detector.SetMinArea(100.0);
+        detector.SetMaxArea(size * size * 0.5);
         
         // Measure detection time
         auto start = high_resolution_clock::now();
-        std::vector<Rectangle> rectangles = detector.detectRectangles(testImage);
+        std::vector<Rectangle> rectangles = detector.DetectRectangles(testImage);
         auto end = high_resolution_clock::now();
         
-        auto duration = duration_cast<milliseconds>(end - start);
+        auto duration_ms = duration_cast<milliseconds>(end - start);
+        auto duration_us = duration_cast<microseconds>(end - start);
+        auto duration_ns = duration_cast<nanoseconds>(end - start);
         
         std::cout << "  - Detected " << rectangles.size() << " rectangles\n";
-        std::cout << "  - Time taken: " << duration.count() << " ms\n";
-        std::cout << "  - Processing rate: " << (size * size) / (duration.count() + 1) << " pixels/ms\n\n";
+        
+        if (duration_ms.count() == 0) {
+            if (duration_us.count() == 0) {
+                std::cout << "  - Time taken: " << duration_ns.count() << " ns\n";
+                std::cout << "  - Processing rate: " << (static_cast<long long>(size) * size * 1000000000) / (duration_ns.count() + 1) << " pixels/s\n\n";
+            } else {
+                std::cout << "  - Time taken: " << duration_us.count() << " µs\n";
+                std::cout << "  - Processing rate: " << (static_cast<long long>(size) * size * 1000000) / (duration_us.count() + 1) << " pixels/s\n\n";
+            }
+        } else {
+            std::cout << "  - Time taken: " << duration_ms.count() << " ms\n";
+            std::cout << "  - Processing rate: " << (size * size) / (duration_ms.count() + 1) << " pixels/ms\n\n";
+        }
     }
     
     // Test with a complex image (many small rectangles)
@@ -55,18 +68,47 @@ void testPerformance() {
     }
     
     RectangleDetector detector;
-    detector.setMinArea(50.0);
-    detector.setMaxArea(10000.0);
+    detector.SetMinArea(50.0);
+    detector.SetMaxArea(10000.0);
     
     auto start = high_resolution_clock::now();
-    std::vector<Rectangle> rectangles = detector.detectRectangles(complexImage);
+    std::vector<Rectangle> rectangles = detector.DetectRectangles(complexImage);
     auto end = high_resolution_clock::now();
     
-    auto duration = duration_cast<milliseconds>(end - start);
+    auto duration_ms = duration_cast<milliseconds>(end - start);
+    auto duration_us = duration_cast<microseconds>(end - start);
+    auto duration_ns = duration_cast<nanoseconds>(end - start);
     
     std::cout << "  - Detected " << rectangles.size() << " rectangles\n";
-    std::cout << "  - Time taken: " << duration.count() << " ms\n";
-    std::cout << "  - Average time per rectangle: " << (rectangles.size() > 0 ? duration.count() / rectangles.size() : 0) << " ms\n";
+    
+    if (duration_ms.count() == 0) {
+        if (duration_us.count() == 0) {
+            std::cout << "  - Time taken: " << duration_ns.count() << " ns\n";
+            if (rectangles.size() > 0) {
+                std::cout << "  - Average time per rectangle: " << duration_ns.count() / rectangles.size() << " ns\n";
+            }
+        } else {
+            std::cout << "  - Time taken: " << duration_us.count() << " µs\n";
+            if (rectangles.size() > 0) {
+                std::cout << "  - Average time per rectangle: " << duration_us.count() / rectangles.size() << " µs\n";
+            }
+        }
+    } else {
+        std::cout << "  - Time taken: " << duration_ms.count() << " ms\n";
+        if (rectangles.size() > 0) {
+            auto avg_ms = static_cast<double>(duration_ms.count()) / rectangles.size();
+            if (avg_ms < 1.0) {
+                auto avg_us = duration_us.count() / rectangles.size();
+                if (avg_us == 0) {
+                    std::cout << "  - Average time per rectangle: " << duration_ns.count() / rectangles.size() << " ns\n";
+                } else {
+                    std::cout << "  - Average time per rectangle: " << avg_us << " µs\n";
+                }
+            } else {
+                std::cout << "  - Average time per rectangle: " << avg_ms << " ms\n";
+            }
+        }
+    }
 }
 
 int main() {

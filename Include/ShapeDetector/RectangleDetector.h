@@ -38,10 +38,10 @@ public:
     RectangleDetector();
     ~RectangleDetector();
     
-    std::vector<Rectangle> detectRectangles(const Image& image);
-    void setMinArea(double minArea);
-    void setMaxArea(double maxArea);
-    void setApproxEpsilon(double epsilon);
+    std::vector<Rectangle> DetectRectangles(const Image& image);
+    void SetMinArea(double minArea);
+    void SetMaxArea(double maxArea);
+    void SetApproxEpsilon(double epsilon);
     
 private:
     double minArea_;
@@ -52,25 +52,25 @@ private:
     mutable std::vector<double> distanceCache_;
     mutable std::vector<double> angleCache_;
     
-    std::vector<std::vector<Point>> findContours(const Image& image) const;
-    bool isRectangle(const std::vector<Point>& contour) const;
-    Rectangle createRectangle(const std::vector<Point>& contour) const;
-    Image preprocessImage(const Image& image) const;
-    std::vector<Point> approximateContour(const std::vector<Point>& contour, double epsilon) const;
-    void scanlineFillContour(const Image& image, int startX, int startY, std::vector<Point>& contour, std::vector<std::vector<bool>>& visited) const;
-    double calculatePerimeter(const std::vector<Point>& contour) const;
-    double calculateArea(const std::vector<Point>& contour) const;
-    void douglasPeuckerRecursive(const std::vector<Point>& contour, int start, int end, double epsilon, std::vector<bool>& keep) const;
-    double pointToLineDistanceSquared(const Point& point, const Point& lineStart, const Point& lineEnd) const;
-    std::vector<Point> convexHull(std::vector<Point> points) const;
-    double cross(const Point& O, const Point& A, const Point& B) const;
-    bool isValidQuadrilateral(const std::vector<Point>& quad) const;
-    std::vector<Point> extractBoundary(const std::vector<Point>& region, const Image& image) const;
-    std::vector<Point> sortBoundaryPointsRadix(std::vector<Point> boundary) const;
-    std::vector<Point> cleanupCorners(const std::vector<Point>& corners) const;
-    std::array<Point, 4> selectBestCorners(const std::vector<Point>& corners) const;
-    double calculateCornerAngle(const Point& prev, const Point& current, const Point& next) const;
-    double calculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const;
-    Point calculateContourCentroid(const std::vector<Point>& contour) const;
+    std::vector<std::vector<Point>> FindContours(const Image& image) const;
+    bool IsRectangle(const std::vector<Point>& contour) const;
+    Rectangle CreateRectangle(const std::vector<Point>& contour) const;
+    Image PreprocessImage(const Image& image) const;
+    std::vector<Point> ApproximateContour(const std::vector<Point>& contour, double epsilon) const;
+    void ScanlineFillContour(const Image& image, int startX, int startY, std::vector<Point>& contour, std::vector<std::vector<bool>>& visited) const;
+    double CalculatePerimeter(const std::vector<Point>& contour) const;
+    double CalculateArea(const std::vector<Point>& contour) const;
+    void DouglasPeuckerRecursive(const std::vector<Point>& contour, int start, int end, double epsilon, std::vector<bool>& keep) const;
+    double PointToLineDistanceSquared(const Point& point, const Point& lineStart, const Point& lineEnd) const;
+    std::vector<Point> ConvexHull(std::vector<Point> points) const;
+    double Cross(const Point& O, const Point& A, const Point& B) const;
+    bool IsValidQuadrilateral(const std::vector<Point>& quad) const;
+    std::vector<Point> ExtractBoundary(const std::vector<Point>& region, const Image& image) const;
+    std::vector<Point> SortBoundaryPointsRadix(std::vector<Point> boundary) const;
+    std::vector<Point> CleanupCorners(const std::vector<Point>& corners) const;
+    std::array<Point, 4> SelectBestCorners(const std::vector<Point>& corners) const;
+    double CalculateCornerAngle(const Point& prev, const Point& current, const Point& next) const;
+    double CalculateCornerAngleFast(const Point& prev, const Point& current, const Point& next) const;
+    Point CalculateContourCentroid(const std::vector<Point>& contour) const;
 };
 

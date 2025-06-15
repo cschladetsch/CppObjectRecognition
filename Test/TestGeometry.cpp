@@ -57,9 +57,9 @@ TEST_F(GeometryTest, RectangleHasCorrectFields) {
 }
 
 TEST_F(GeometryTest, DetectorSettingsWork) {
-    detector->setMinArea(100.0);
-    detector->setMaxArea(2000.0);
-    detector->setApproxEpsilon(0.05);
+    detector->SetMinArea(100.0);
+    detector->SetMaxArea(2000.0);
+    detector->SetApproxEpsilon(0.05);
     
     // If settings are stored correctly, they should affect detection
     // We can't directly test private members, but we can test behavior
@@ -79,7 +79,7 @@ TEST_F(GeometryTest, DetectorSettingsWork) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(smallImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(smallImage);
     
     // Should not detect the small rectangle due to minArea constraint
     EXPECT_EQ(rectangles.size(), 0);

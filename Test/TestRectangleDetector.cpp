@@ -6,9 +6,9 @@ class RectangleDetectorTest : public ::testing::Test {
 protected:
     void SetUp() override {
         detector = new RectangleDetector();
-        detector->setMinArea(400.0);  // Same as main.cpp
-        detector->setMaxArea(8000.0); // Same as main.cpp
-        detector->setApproxEpsilon(0.08);  // Same as main.cpp
+        detector->SetMinArea(400.0);  // Same as main.cpp
+        detector->SetMaxArea(8000.0); // Same as main.cpp
+        detector->SetApproxEpsilon(0.08);  // Same as main.cpp
     }
     
     void TearDown() override {
@@ -33,7 +33,7 @@ TEST_F(RectangleDetectorTest, DetectsSingleRectangle) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_GE(rectangles.size(), 1);
 }
@@ -63,7 +63,7 @@ TEST_F(RectangleDetectorTest, DetectsMultipleRectangles) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_GE(rectangles.size(), 1);
     EXPECT_LE(rectangles.size(), 2);
@@ -78,13 +78,13 @@ TEST_F(RectangleDetectorTest, NoRectanglesInEmptyImage) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_EQ(rectangles.size(), 0);
 }
 
 TEST_F(RectangleDetectorTest, FiltersByMinArea) {
-    detector->setMinArea(2000.0);
+    detector->SetMinArea(2000.0);
     
     Image testImage(100, 100);
     
@@ -100,13 +100,13 @@ TEST_F(RectangleDetectorTest, FiltersByMinArea) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_EQ(rectangles.size(), 0);
 }
 
 TEST_F(RectangleDetectorTest, FiltersByMaxArea) {
-    detector->setMaxArea(50.0);
+    detector->SetMaxArea(50.0);
     
     Image testImage(100, 100);
     
@@ -122,7 +122,7 @@ TEST_F(RectangleDetectorTest, FiltersByMaxArea) {
         }
     }
     
-    std::vector<Rectangle> rectangles = detector->detectRectangles(testImage);
+    std::vector<Rectangle> rectangles = detector->DetectRectangles(testImage);
     
     EXPECT_EQ(rectangles.size(), 0);
 }

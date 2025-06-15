@@ -311,6 +311,19 @@ std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point
     
     const double perimeter = CalculatePerimeter(contour);
     
+    // Try moment-based detection first - completely rotation invariant
+    // But only for contours that pass additional shape tests
+    if (contour.size() > 20 && !IsLikelyCircularContour(contour)) {
+        std::vector<Point> momentApprox = FindRectangleCornersMomentBased(contour);
+        if (momentApprox.size() == 4) {
+            // Additional validation: check if detected corners make sense
+            double area = CalculateArea(momentApprox);
+            if (area >= minArea_ && area <= maxArea_) {
+                return momentApprox;
+            }
+        }
+    }
+    
     // Try Hough-based line detection for steep angles - but only for rectangular-like shapes
     if (contour.size() > 30 && !IsLikelyCircularContour(contour)) {
         std::vector<Point> houghApprox = FindRectangleUsingHoughLines(contour);
@@ -1136,4 +1149,175 @@ bool RectangleDetector::IsLikelyCircularContour(const std::vector<Point>& contou
     
     // If standard deviation is small relative to mean distance, it's likely circular
     return (stdDev / meanDist) < 0.15;
+}
+
+// Moment-based rectangle detection - completely rotation invariant
+std::vector<Point> RectangleDetector::FindRectangleCornersMomentBased(const std::vector<Point>& contour) const {
+    if (contour.size() < 8) return std::vector<Point>();
+    
+    // First check if this is actually rectangular using Hu moments
+    if (!IsRectangleUsingMoments(contour)) {
+        return std::vector<Point>();
+    }
+    
+    // Calculate principal orientation
+    double orientation = CalculateOrientation(contour);
+    
+    // Rotate contour to canonical position (axis-aligned)
+    std::vector<Point> rotatedContour = RotateContourToCanonical(contour, -orientation);
+    
+    // Find bounding box of rotated contour
+    int minX = rotatedContour[0].x, maxX = rotatedContour[0].x;
+    int minY = rotatedContour[0].y, maxY = rotatedContour[0].y;
+    
+    for (const auto& point : rotatedContour) {
+        minX = std::min(minX, point.x);
+        maxX = std::max(maxX, point.x);
+        minY = std::min(minY, point.y);
+        maxY = std::max(maxY, point.y);
+    }
+    
+    // Create canonical rectangle corners
+    std::vector<Point> canonicalCorners = {
+        Point(minX, minY), Point(maxX, minY),
+        Point(maxX, maxY), Point(minX, maxY)
+    };
+    
+    // Rotate corners back to original orientation
+    std::vector<Point> corners = RotateContourToCanonical(canonicalCorners, orientation);
+    
+    return corners;
+}
+
+// Check if shape is rectangular using rotation-invariant Hu moments
+bool RectangleDetector::IsRectangleUsingMoments(const std::vector<Point>& contour) const {
+    if (contour.size() < 8) return false;
+    
+    // Calculate multiple Hu moment invariants for better discrimination
+    double m20 = CalculateHuMoment(contour, 2, 0);
+    double m02 = CalculateHuMoment(contour, 0, 2);
+    double m11 = CalculateHuMoment(contour, 1, 1);
+    double m30 = CalculateHuMoment(contour, 3, 0);
+    double m03 = CalculateHuMoment(contour, 0, 3);
+    double m21 = CalculateHuMoment(contour, 2, 1);
+    double m12 = CalculateHuMoment(contour, 1, 2);
+    
+    double hu1 = m20 + m02;
+    double hu2 = std::pow(m20 - m02, 2) + 4 * std::pow(m11, 2);
+    double hu3 = std::pow(m30 - 3*m12, 2) + std::pow(3*m21 - m03, 2);
+    
+    if (hu1 < EPSILON_TOLERANCE) return false;
+    
+    double momentRatio = hu2 / (hu1 * hu1);
+    double skewness = hu3 / std::pow(hu1, 1.5);
+    
+    // Multi-criteria check for rectangles:
+    // 1. Moment ratio should be in rectangular range
+    // 2. Skewness should be low (rectangles are symmetric)
+    // 3. Aspect ratio check via second moments
+    
+    bool momentCheck = (momentRatio >= 0.005 && momentRatio <= 0.12);
+    bool skewnessCheck = (std::abs(skewness) < 0.1);
+    
+    // Additional check: rectangles have specific second moment relationships
+    double aspectRatio = std::sqrt(m20 / m02);
+    bool aspectCheck = (aspectRatio > 0.3 && aspectRatio < 10.0); // Not too thin or too fat
+    
+    return momentCheck && skewnessCheck && aspectCheck;
+}
+
+// Calculate normalized central moment (Hu moment component)
+double RectangleDetector::CalculateHuMoment(const std::vector<Point>& contour, int p, int q) const {
+    if (contour.empty()) return 0.0;
+    
+    Point centroid = CalculateCentroid(contour);
+    
+    // Calculate central moment
+    double moment = 0.0;
+    for (const auto& point : contour) {
+        double x = point.x - centroid.x;
+        double y = point.y - centroid.y;
+        moment += std::pow(x, p) * std::pow(y, q);
+    }
+    
+    // Normalize by area (m00)
+    double area = contour.size(); // Approximation for discrete contour
+    if (area > EPSILON_TOLERANCE) {
+        double gamma = (p + q) / 2.0 + 1.0;
+        moment /= std::pow(area, gamma);
+    }
+    
+    return moment;
+}
+
+// Calculate centroid of contour
+Point RectangleDetector::CalculateCentroid(const std::vector<Point>& contour) const {
+    if (contour.empty()) return Point(0, 0);
+    
+    double sumX = 0, sumY = 0;
+    for (const auto& point : contour) {
+        sumX += point.x;
+        sumY += point.y;
+    }
+    
+    return Point(
+        static_cast<int>(std::round(sumX / contour.size())),
+        static_cast<int>(std::round(sumY / contour.size()))
+    );
+}
+
+// Calculate principal orientation using second moments
+double RectangleDetector::CalculateOrientation(const std::vector<Point>& contour) const {
+    if (contour.size() < 3) return 0.0;
+    
+    Point centroid = CalculateCentroid(contour);
+    
+    // Calculate second central moments
+    double m20 = 0, m02 = 0, m11 = 0;
+    
+    for (const auto& point : contour) {
+        double x = point.x - centroid.x;
+        double y = point.y - centroid.y;
+        
+        m20 += x * x;
+        m02 += y * y;
+        m11 += x * y;
+    }
+    
+    // Principal orientation angle
+    if (std::abs(m20 - m02) < EPSILON_TOLERANCE) {
+        return 0.0; // Already axis-aligned
+    }
+    
+    return 0.5 * std::atan2(2.0 * m11, m20 - m02);
+}
+
+// Rotate contour points by given angle around centroid
+std::vector<Point> RectangleDetector::RotateContourToCanonical(const std::vector<Point>& contour, double angle) const {
+    if (contour.empty() || std::abs(angle) < EPSILON_TOLERANCE) return contour;
+    
+    Point centroid = CalculateCentroid(contour);
+    std::vector<Point> rotated;
+    rotated.reserve(contour.size());
+    
+    double cosAngle = std::cos(angle);
+    double sinAngle = std::sin(angle);
+    
+    for (const auto& point : contour) {
+        // Translate to origin
+        double x = point.x - centroid.x;
+        double y = point.y - centroid.y;
+        
+        // Rotate
+        double rotX = x * cosAngle - y * sinAngle;
+        double rotY = x * sinAngle + y * cosAngle;
+        
+        // Translate back
+        rotated.emplace_back(
+            static_cast<int>(std::round(rotX + centroid.x)),
+            static_cast<int>(std::round(rotY + centroid.y))
+        );
+    }
+    
+    return rotated;
 }

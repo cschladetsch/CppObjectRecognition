@@ -80,5 +80,11 @@ private:
     std::vector<std::pair<Point, Point>> DetectLines(const std::vector<Point>& contour) const;
     bool AreLinesPerpendicular(const std::pair<Point, Point>& line1, const std::pair<Point, Point>& line2, double tolerance = 0.2) const;
     bool IsLikelyCircularContour(const std::vector<Point>& contour) const;
+    bool IsRectangleUsingMoments(const std::vector<Point>& contour) const;
+    std::vector<Point> FindRectangleCornersMomentBased(const std::vector<Point>& contour) const;
+    double CalculateHuMoment(const std::vector<Point>& contour, int p, int q) const;
+    Point CalculateCentroid(const std::vector<Point>& contour) const;
+    double CalculateOrientation(const std::vector<Point>& contour) const;
+    std::vector<Point> RotateContourToCanonical(const std::vector<Point>& contour, double angle) const;
 };
 

@@ -1,9 +1,7 @@
 #!/bin/bash
 
-./b
-
-echo "Rectangle Detection - Image Viewer Script"
-echo "=========================================="
+echo "Rectangle Detection - Visual Test Script"
+echo "========================================"
 
 # Check if ImageMagick is available
 if ! command -v convert &> /dev/null; then
@@ -12,17 +10,51 @@ if ! command -v convert &> /dev/null; then
     exit 1
 fi
 
-# Build and run the application first
-echo "Building and running rectangle detection..."
+# Check if build directory exists
+if [[ ! -d "build" ]]; then
+    echo "Build directory not found. Running initial build..."
+    ./b
+fi
+
+# Create Output directory if it doesn't exist
+mkdir -p Output
+
 cd build 2>/dev/null || { echo "Error: build directory not found. Run cmake first."; exit 1; }
 
-if ! make > /dev/null 2>&1; then
-    echo "Error: Build failed"
-    exit 1
+# Check if VisualTest executable exists and is newer than source files
+VISUAL_TEST_EXE="../Output/VisualTest"
+NEEDS_BUILD=false
+
+if [[ ! -f "$VISUAL_TEST_EXE" ]]; then
+    echo "VisualTest executable not found. Building..."
+    NEEDS_BUILD=true
+else
+    # Check if any source files are newer than the executable
+    if [[ ../Source/VisualTest.cpp -nt "$VISUAL_TEST_EXE" ]] || \
+       [[ ../Source/ImageProcessor.cpp -nt "$VISUAL_TEST_EXE" ]] || \
+       [[ ../Source/RectangleDetector.cpp -nt "$VISUAL_TEST_EXE" ]] || \
+       [[ ../Include/ShapeDetector/ImageProcessor.hpp -nt "$VISUAL_TEST_EXE" ]] || \
+       [[ ../Include/ShapeDetector/RectangleDetector.hpp -nt "$VISUAL_TEST_EXE" ]] || \
+       [[ ../CMakeLists.txt -nt "$VISUAL_TEST_EXE" ]]; then
+        echo "Source files have been modified. Rebuilding..."
+        NEEDS_BUILD=true
+    fi
+fi
+
+# Build only if necessary
+if [[ "$NEEDS_BUILD" == "true" ]]; then
+    echo "Building VisualTest..."
+    if ! make VisualTest > /dev/null 2>&1; then
+        echo "Error: Build failed"
+        exit 1
+    fi
+    echo "Build completed."
+else
+    echo "VisualTest is up to date. Skipping build."
 fi
 
 echo "Running visual test application..."
-./VisualTest
+$VISUAL_TEST_EXE
 
 # Check if output files exist
 if [[ ! -f "visual_test_mixed_shapes.png" ]]; then

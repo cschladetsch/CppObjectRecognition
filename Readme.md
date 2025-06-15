@@ -1,6 +1,6 @@
 # Rectangle Detection System
 
-A C++ computer vision application that detects rectangles in images using custom image processing algorithms.
+A C++ computer vision application that detects rectangles in images using custom image processing algorithms with comprehensive visual testing capabilities.
 
 Does not use any libraries, just naked C++.
 
@@ -11,13 +11,13 @@ Does not use any libraries, just naked C++.
 ## Features
 
 - **Custom Rectangle Detection**: Pure C++ implementation without external dependencies
+- **Shape Discrimination**: Accurately detects only rectangles while ignoring circles, triangles, ellipses, and other shapes
+- **Rotated Rectangle Support**: Detects rectangles at any angle from 0° to 360°
+- **Comprehensive Visual Testing**: Automated test suite with 6 different test scenarios
 - **Real-time Processing**: Optimized algorithms for fast detection
 - **Interactive Interface**: Terminal-based UI with keyboard controls
 - **Test Image Generation**: Built-in generator for synthetic test images with rotated rectangles
-- **Visualization**: Color-coded output showing detected rectangles with:
-  - Red outlines for boundaries
-  - Green dots for centers
-  - Blue lines for orientation
+- **Thick Visual Outlines**: 4-pixel thick red outlines for clear visualization of detected rectangles
 - **Cross-platform**: Supports Linux, macOS, and Windows (via WSL)
 - **Performance Optimized**: 
   - Multi-threaded processing with OpenMP
@@ -31,12 +31,13 @@ Does not use any libraries, just naked C++.
 CppRectangleRecognition/
 ├── Include/
 │   └── ShapeDetector/
-│       ├── ImageProcessor.h       # Image processing utilities
-│       └── RectangleDetector.h    # Rectangle detection algorithms
+│       ├── ImageProcessor.hpp     # Image processing utilities
+│       └── RectangleDetector.hpp  # Rectangle detection algorithms
 ├── Source/
 │   ├── ImageProcessor.cpp         # Image processing implementation
 │   ├── Main.cpp                   # Main application
-│   └── RectangleDetector.cpp      # Rectangle detection implementation
+│   ├── RectangleDetector.cpp      # Rectangle detection implementation
+│   └── VisualTest.cpp             # Visual testing suite
 ├── Test/                          # Unit tests
 │   ├── TestGeometry.cpp           # Geometry structure tests
 │   ├── TestImageProcessor.cpp     # Image processing tests
@@ -45,6 +46,9 @@ CppRectangleRecognition/
 │   └── TestPerformance.cpp        # Performance benchmarks
 ├── build/                         # Build directory (generated)
 ├── resources/                     # Demo images and resources
+├── b                              # Build script
+├── r                              # Run script  
+├── v                              # Visual test script
 └── CMakeLists.txt                # CMake configuration
 ```
 
@@ -53,17 +57,17 @@ CppRectangleRecognition/
 ### Prerequisites
 
 - CMake 3.10 or higher
-- C++17 compatible compiler (GCC, Clang)
-- ImageMagick (optional, for PNG conversion)
+- C++23 compatible compiler (GCC 11+, Clang 14+) for `std::numbers`
+- ImageMagick (optional, for PNG conversion in visual tests)
 
 ### Build Instructions
 
 Use scripts:
 
 ```bash
-$ ./b # just build the project and test
-$ ./r # calls b then runs  the app
-$ ./v # calls r then opens the result using explorer or equivalent on current platform
+$ ./b # Build the project and run unit tests
+$ ./r # Build and run the main rectangle detection application
+$ ./v # Build and run visual test suite with automatic image viewing
 ```
 
 Or manually:
@@ -81,23 +85,58 @@ cd build
 
 ## Usage
 
-- Press **SPACE** to generate a new test image with random rectangles
-- Press **Q** to quit the application
-- Detected rectangles are displayed with:
-  - Red outlines showing rectangle boundaries
-  - Green dots marking rectangle centers
-  - Blue lines indicating rectangle orientation
-- Output images are saved as `output.ppm` and converted to `output.png` if ImageMagick is available
+### Main Application
+
+```bash
+cd build
+./CppRectangleRecognition input_image.pgm
+```
+
+- Input: PGM grayscale images
+- Output: PPM color images with detected rectangles outlined in red
+- Detected rectangles are displayed with red boundary outlines
+
+### Visual Testing Suite
+
+```bash
+./v  # Runs comprehensive visual tests
+```
+
+The visual testing suite generates 6 different test scenarios:
+
+1. **circles_only.png** - Multiple circles (should detect 0 rectangles)
+2. **triangles_only.png** - Multiple triangles (should detect 0 rectangles)  
+3. **rectangles_only.png** - Multiple axis-aligned rectangles (should detect all)
+4. **mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect only rectangles)
+5. **rotated_rectangles.png** - 22+ rectangles at various angles from 0° to 165° in 15° increments (should detect all rotated rectangles)
+6. **complex_scene.png** - Complex scene with many shapes (should detect only rectangles)
+
+#### Rotated Rectangle Test Details
+
+The rotated rectangles test includes:
+- **Row 1**: 0° to 75° in 15° increments (6 rectangles)
+- **Row 2**: 90° to 165° in 15° increments (6 rectangles) 
+- **Row 3**: -90° to -15° in 15° increments (6 rectangles)
+- **Row 4**: Different sized rectangles (22.5°, 67.5°, -67.5°, 112.5°) - 4 rectangles
+- **Row 5**: Square rectangles at various angles (18°, 54°, -36°, 126°) - 4 rectangles
+
+**Total: 26 rotated rectangles** demonstrating detection at every angle
 
 ## Algorithm Details
 
-The rectangle detection system uses:
+The rectangle detection system uses advanced shape discrimination:
 
-1. **Test Image Generation**: Creates synthetic images with rotated rectangles
-2. **Edge Detection**: Identifies potential rectangle boundaries
-3. **Contour Analysis**: Finds closed contours in the image
-4. **Shape Approximation**: Simplifies contours to identify rectangular shapes
-5. **Filtering**: Removes false positives based on area and aspect ratio
+1. **Image Preprocessing**: Binary thresholding for clean edge detection
+2. **Contour Extraction**: Efficient scanline flood fill to find connected components
+3. **Boundary Approximation**: Douglas-Peucker algorithm for contour simplification
+4. **Shape Analysis**: 
+   - 4-corner validation (must have exactly 4 vertices)
+   - Corner angle verification (angles must be ~90°)
+   - Parallel side detection (opposite sides must be parallel)
+   - Area filtering (configurable min/max area thresholds)
+   - Rectangularity ratio (contour area vs bounding box area)
+5. **Rotation Handling**: Detects rectangles at any angle using geometric transformations
+6. **Shape Discrimination**: Specifically rejects circles, triangles, ellipses, and irregular polygons
 
 ## Testing
 
@@ -124,7 +163,12 @@ The test suite includes:
 
 - **TestGeometry.cpp**: Tests for geometric primitives (Point, Rectangle, Image structures)
 - **TestImageProcessor.cpp**: Tests for image I/O, filtering, and manipulation functions
-- **TestRectangleDetector.cpp**: Tests for rectangle detection algorithms and edge cases
+- **TestRectangleDetector.cpp**: Comprehensive shape discrimination tests:
+  - `OnlyDetectsCircles_ShouldFindZero` - Verifies circles are not detected as rectangles
+  - `OnlyDetectsTriangles_ShouldFindZero` - Verifies triangles are not detected as rectangles
+  - `OnlyDetectsEllipses_ShouldFindZero` - Verifies ellipses are not detected as rectangles
+  - `DetectsOnlyRectanglesAmongMixedShapes` - Verifies selective rectangle detection
+  - `DetectsOnlySquaresAsRectangles` - Verifies squares are correctly identified as rectangles
 - **TestMain.cpp**: Google Test framework runner
 
 All tests use Google Test framework and run automatically during the build process.

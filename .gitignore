@@ -1,6 +1,34 @@
 /CLAUDE*
 /build
+/Bin
+/Output
+/CMakeFiles
+CTestTestfile.cmake
+
+# Ignore all image files except those in /resources
+*.png
 *.ppm
 *.pbm
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.webp
+*.pgm
+
+# Allow images in resources directory
+!/resources/*.png
+!/resources/*.jpg
+!/resources/*.jpeg
+!/resources/*.gif
+!/resources/*.bmp
+!/resources/*.tiff
+!/resources/*.tif
+!/resources/*.webp
+!/resources/*.pgm
+!/resources/*.ppm
+!/resources/*.pbm
 
 

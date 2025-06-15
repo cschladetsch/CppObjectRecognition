@@ -144,10 +144,10 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     // First check: must have exactly 4 vertices for a rectangle
     if (approx.size() != 4) {
-        // Allow 5-6 vertices for slightly imperfect rectangles
-        if (approx.size() < 4 || approx.size() > 6) return false;
+        // Allow 5-8 vertices for slightly imperfect rectangles
+        if (approx.size() < 4 || approx.size() > 8) return false;
         
-        // If we have 5-6 vertices, try to find the best 4 corners
+        // If we have more than 4 vertices, try to find the best 4 corners
         if (approx.size() > 4) {
             auto corners = SelectBestCorners(approx);
             approx = std::vector<Point>(corners.begin(), corners.end());
@@ -163,16 +163,31 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     if (!IsValidQuadrilateral(approx)) return false;
     
     // Additional check: verify corner angles are close to π/2 radians (90 degrees)
+    int validCorners = 0;
+    double avgAngleDeviation = 0.0;
     for (int i = 0; i < 4; ++i) {
         int prev = (i + 3) % 4;
         int next = (i + 1) % 4;
         double angle = CalculateCornerAngleFast(approx[prev], approx[i], approx[next]);
         
+        double deviation = std::abs(angle - std::numbers::pi / 2.0);
+        avgAngleDeviation += deviation;
         
-        // Rectangle corners should be close to π/2 radians (allow ~0.6 radians tolerance, about 34 degrees)
-        if (std::abs(angle - std::numbers::pi / 2.0) > 0.6) {
-            return false;
+        // Rectangle corners should be close to π/2 radians (allow ~0.7 radians tolerance, about 40 degrees)
+        if (deviation < 0.7) {
+            validCorners++;
         }
+    }
+    avgAngleDeviation /= 4.0;
+    
+    // Require all 4 corners to be reasonably close to 90 degrees
+    if (validCorners < 4) {
+        return false;
+    }
+    
+    // Additional check: average deviation should be small for true rectangles
+    if (avgAngleDeviation > 0.4) {  // About 23 degrees average
+        return false;
     }
     
     // Check rectangularity: compare area with bounding box area
@@ -189,8 +204,8 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     
     // For a perfect rectangle, this ratio should be close to 1
-    // Allow more tolerance for rotated rectangles (45° rotation gives ~0.5)
-    if (rectangularity < 0.5) {
+    // Allow more tolerance for rotated rectangles (45° rotation gives ~0.71)
+    if (rectangularity < 0.4) {
         return false;
     }
     
@@ -225,10 +240,43 @@ bool RectangleDetector::IsValidQuadrilateral(const std::vector<Point>& quad) con
 std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point>& contour, double epsilon) const {
     if (contour.size() < 4) return contour;
     
-    // Use direct Douglas-Peucker on the contour for better results with rotated rectangles
-    std::vector<Point> approx;
-    approx.reserve(8);  // Pre-allocate for typical polygon
+    // Try multiple epsilon values to find the best 4-corner approximation
     const double perimeter = CalculatePerimeter(contour);
+    
+    // Start with a smaller epsilon for rotated rectangles
+    std::vector<double> epsilonMultipliers = {0.5, 1.0, 1.5, 2.0, 3.0};
+    
+    for (double multiplier : epsilonMultipliers) {
+        double epsilonValue = std::max(epsilon * perimeter * multiplier, 3.0);
+        
+        std::vector<Point> approx;
+        approx.reserve(8);
+        
+        std::vector<bool> keep(contour.size(), false);
+        keep[0] = keep[contour.size() - 1] = true;
+        
+        DouglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
+        
+        for (size_t i = 0; i < contour.size(); ++i) {
+            if (keep[i]) {
+                approx.push_back(contour[i]);
+            }
+        }
+        
+        // If we get exactly 4 corners, that's ideal
+        if (approx.size() == 4) {
+            return approx;
+        }
+        
+        // If we get 5-8 corners, we can work with that
+        if (approx.size() >= 5 && approx.size() <= 8) {
+            return approx;
+        }
+    }
+    
+    // Fallback: use original algorithm
+    std::vector<Point> approx;
+    approx.reserve(8);
     double epsilonValue = std::max(epsilon * perimeter, 5.0);
     
     std::vector<bool> keep(contour.size(), false);
@@ -239,21 +287,6 @@ std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point
     for (size_t i = 0; i < contour.size(); ++i) {
         if (keep[i]) {
             approx.push_back(contour[i]);
-        }
-    }
-    
-    if (approx.size() > 6) {
-        approx.clear();
-        epsilonValue *= 2.0;
-        std::fill(keep.begin(), keep.end(), false);
-        keep[0] = keep[contour.size() - 1] = true;
-        
-        DouglasPeuckerRecursive(contour, 0, contour.size() - 1, epsilonValue, keep);
-        
-        for (size_t i = 0; i < contour.size(); ++i) {
-            if (keep[i]) {
-                approx.push_back(contour[i]);
-            }
         }
     }
     

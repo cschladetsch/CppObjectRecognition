@@ -3,10 +3,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <numbers>
 
 void CreateAndTestImage(const std::string& testName, Image testImage, const std::string& description) {
     // Create detector with reasonable settings
@@ -149,8 +146,8 @@ Image CreateMixedShapesImage() {
     }
     
     // Add rotated rectangles (should also be detected)
-    ImageProcessor::CreateRotatedRectangle(image, 450, 120, 60, 40, M_PI/6);    // 30 degrees
-    ImageProcessor::CreateRotatedRectangle(image, 500, 320, 70, 45, -M_PI/4);   // -45 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 450, 120, 60, 40, std::numbers::pi/6);    // 30 degrees
+    ImageProcessor::CreateRotatedRectangle(image, 500, 320, 70, 45, -std::numbers::pi/4);   // -45 degrees
     
     // Add circles (should NOT be detected)
     ImageProcessor::DrawFilledCircle(image, 250, 100, 35, 255);
@@ -227,24 +224,51 @@ Image CreateComplexSceneImage() {
 }
 
 Image CreateRotatedRectanglesImage() {
-    Image image(500, 400);
+    Image image(900, 700);
     
     // Black background
-    for (int y = 0; y < 400; ++y) {
-        for (int x = 0; x < 500; ++x) {
+    for (int y = 0; y < 700; ++y) {
+        for (int x = 0; x < 900; ++x) {
             image.pixels[y][x] = 0;
         }
     }
     
-    // Add rotated rectangles at various angles
-    ImageProcessor::CreateRotatedRectangle(image, 120, 100, 80, 50, 0.0);           // 0 degrees (horizontal)
-    ImageProcessor::CreateRotatedRectangle(image, 300, 100, 80, 50, M_PI/6);        // 30 degrees
-    ImageProcessor::CreateRotatedRectangle(image, 120, 200, 80, 50, M_PI/4);        // 45 degrees
-    ImageProcessor::CreateRotatedRectangle(image, 300, 200, 80, 50, M_PI/3);        // 60 degrees  
-    ImageProcessor::CreateRotatedRectangle(image, 120, 300, 80, 50, M_PI/2);        // 90 degrees (vertical)
-    ImageProcessor::CreateRotatedRectangle(image, 300, 300, 80, 50, 2*M_PI/3);      // 120 degrees
-    ImageProcessor::CreateRotatedRectangle(image, 420, 150, 60, 40, -M_PI/4);       // -45 degrees
-    ImageProcessor::CreateRotatedRectangle(image, 420, 250, 60, 40, -M_PI/6);       // -30 degrees
+    // Grid of rotated rectangles at various angles
+    // Row 1: 0° to 90° in 15° increments
+    ImageProcessor::CreateRotatedRectangle(image, 100, 100, 80, 50, 0.0);                           // 0°
+    ImageProcessor::CreateRotatedRectangle(image, 250, 100, 80, 50, std::numbers::pi/12);          // 15°
+    ImageProcessor::CreateRotatedRectangle(image, 400, 100, 80, 50, std::numbers::pi/6);           // 30°
+    ImageProcessor::CreateRotatedRectangle(image, 550, 100, 80, 50, std::numbers::pi/4);           // 45°
+    ImageProcessor::CreateRotatedRectangle(image, 700, 100, 80, 50, std::numbers::pi/3);           // 60°
+    ImageProcessor::CreateRotatedRectangle(image, 800, 100, 80, 50, 5*std::numbers::pi/12);        // 75°
+    
+    // Row 2: 90° to 180° in 15° increments
+    ImageProcessor::CreateRotatedRectangle(image, 100, 250, 80, 50, std::numbers::pi/2);           // 90°
+    ImageProcessor::CreateRotatedRectangle(image, 250, 250, 80, 50, 7*std::numbers::pi/12);        // 105°
+    ImageProcessor::CreateRotatedRectangle(image, 400, 250, 80, 50, 2*std::numbers::pi/3);         // 120°
+    ImageProcessor::CreateRotatedRectangle(image, 550, 250, 80, 50, 3*std::numbers::pi/4);         // 135°
+    ImageProcessor::CreateRotatedRectangle(image, 700, 250, 80, 50, 5*std::numbers::pi/6);         // 150°
+    ImageProcessor::CreateRotatedRectangle(image, 800, 250, 80, 50, 11*std::numbers::pi/12);       // 165°
+    
+    // Row 3: Negative angles -90° to 0° in 15° increments
+    ImageProcessor::CreateRotatedRectangle(image, 100, 400, 80, 50, -std::numbers::pi/2);          // -90°
+    ImageProcessor::CreateRotatedRectangle(image, 250, 400, 80, 50, -5*std::numbers::pi/12);       // -75°
+    ImageProcessor::CreateRotatedRectangle(image, 400, 400, 80, 50, -std::numbers::pi/3);          // -60°
+    ImageProcessor::CreateRotatedRectangle(image, 550, 400, 80, 50, -std::numbers::pi/4);          // -45°
+    ImageProcessor::CreateRotatedRectangle(image, 700, 400, 80, 50, -std::numbers::pi/6);          // -30°
+    ImageProcessor::CreateRotatedRectangle(image, 800, 400, 80, 50, -std::numbers::pi/12);         // -15°
+    
+    // Row 4: Different sized rectangles at various angles
+    ImageProcessor::CreateRotatedRectangle(image, 150, 550, 100, 60, std::numbers::pi/8);          // 22.5°, larger
+    ImageProcessor::CreateRotatedRectangle(image, 350, 550, 60, 40, 3*std::numbers::pi/8);         // 67.5°, smaller
+    ImageProcessor::CreateRotatedRectangle(image, 550, 550, 90, 30, -3*std::numbers::pi/8);        // -67.5°, wide
+    ImageProcessor::CreateRotatedRectangle(image, 750, 550, 40, 80, 5*std::numbers::pi/8);         // 112.5°, tall
+    
+    // Row 5: Square rectangles at various angles
+    ImageProcessor::CreateRotatedRectangle(image, 200, 650, 60, 60, std::numbers::pi/10);          // 18°, square
+    ImageProcessor::CreateRotatedRectangle(image, 400, 650, 60, 60, 3*std::numbers::pi/10);        // 54°, square
+    ImageProcessor::CreateRotatedRectangle(image, 600, 650, 60, 60, -std::numbers::pi/5);          // -36°, square
+    ImageProcessor::CreateRotatedRectangle(image, 800, 650, 60, 60, 7*std::numbers::pi/10);        // 126°, square
     
     return image;
 }

@@ -35,20 +35,28 @@ void RectangleDetector::SetApproxEpsilon(double epsilon) {
 
 std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
     std::vector<Rectangle> rectangles;
-    rectangles.reserve(20); // Pre-allocate for typical number of rectangles
+    rectangles.reserve(50); // More space for multiple detection strategies
     
-    // Multi-scale detection for better size coverage
-    std::vector<double> scales = {1.0, 0.75, 1.25}; // Multiple scales
+    // Strategy 1: Standard contour-based detection
+    Image processed1 = PreprocessImage(image);
+    std::vector<std::vector<Point>> contours1 = FindContours(processed1);
+    ProcessContoursAtScale(contours1, rectangles, 1.0, image);
     
-    for (double scale : scales) {
-        Image scaledImage = (scale != 1.0) ? ScaleImage(image, scale) : image;
-        Image processed = PreprocessImage(scaledImage);
-        std::vector<std::vector<Point>> contours = FindContours(processed);
-        
-        ProcessContoursAtScale(contours, rectangles, scale, scaledImage);
-    }
+    // Strategy 2: Enhanced edge detection for steep angles
+    Image processed2 = PreprocessImageEnhanced(image);
+    std::vector<std::vector<Point>> contours2 = FindContours(processed2);
+    ProcessContoursAtScale(contours2, rectangles, 1.0, image);
     
-    // Remove duplicate rectangles found at different scales
+    // Strategy 3: Morphological operations for broken contours
+    Image processed3 = PreprocessImageMorphological(image);
+    std::vector<std::vector<Point>> contours3 = FindContours(processed3);
+    ProcessContoursAtScale(contours3, rectangles, 1.0, image);
+    
+    // Strategy 4: Hough line-based rectangle detection for critical angles
+    std::vector<Rectangle> houghRects = DetectRectanglesUsingHoughLines(image);
+    rectangles.insert(rectangles.end(), houghRects.begin(), houghRects.end());
+    
+    // Remove duplicates from multiple strategies
     RemoveDuplicateRectangles(rectangles);
     
     return rectangles;
@@ -112,10 +120,10 @@ void RectangleDetector::ProcessContoursAtScale(
 Image RectangleDetector::PreprocessImage(const Image& image) const {
     Image result = image;
     
-    // Apply Gaussian blur for smoother contours and better corner detection
-    Image blurred = ApplyGaussianBlur(result, 1.0); // Small sigma for subtle smoothing
+    // Apply minimal Gaussian blur for noise reduction
+    Image blurred = ApplyGaussianBlur(result, 0.8); // Reduced sigma to preserve edges
     
-    // Adaptive thresholding with Otsu's method for better edge detection
+    // Simple thresholding - keep it simple to avoid losing rectangles
     #pragma omp parallel for
     for (int y = 0; y < blurred.height; ++y) {
         for (int x = 0; x < blurred.width; ++x) {
@@ -210,17 +218,14 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     std::vector<Point> approx = ApproximateContour(contour, approxEpsilon_);
     
     
-    // First check: must have exactly 4 vertices for a rectangle
-    if (approx.size() != 4) {
-        // Allow 5-8 vertices for slightly imperfect rectangles
-        if (approx.size() < 4 || approx.size() > 8) return false;
-        
-        // If we have more than 4 vertices, try to find the best 4 corners
-        if (approx.size() > 4) {
-            auto corners = SelectBestCorners(approx);
-            approx = std::vector<Point>(corners.begin(), corners.end());
-            if (approx.size() != 4) return false;
-        }
+    // Allow 4-6 vertices for rectangles (more tolerance for imperfect shapes)
+    if (approx.size() < 4 || approx.size() > 6) return false;
+    
+    // If we have more than 4 vertices, try to find the best 4 corners
+    if (approx.size() > 4) {
+        auto corners = SelectBestCorners(approx);
+        approx = std::vector<Point>(corners.begin(), corners.end());
+        if (approx.size() != 4) return false;
     }
     
     // Check area constraints
@@ -255,9 +260,9 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     }
     avgAngleDeviation *= 0.25; // Divide by 4
     
-    // Early exit optimizations - be more tolerant for rotated rectangles
-    // Allow at least 3 out of 4 corners to be close to 90 degrees
-    if (validCorners < 3 || avgAngleDeviation > 0.5) {
+    // Tolerant but not too permissive for rotated rectangles
+    // Allow at least 2 out of 4 corners to be close to 90 degrees
+    if (validCorners < 2 || avgAngleDeviation > 0.7) {
         return false;
     }
     
@@ -280,8 +285,8 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     
     // For a perfect rectangle, this ratio should be close to 1
-    // Allow more tolerance for rotated rectangles (45° rotation gives ~0.71)
-    if (rectangularity < 0.25) {
+    // Very high tolerance for rotated rectangles (45° rotation gives ~0.71)
+    if (rectangularity < 0.15) {
         return false;
     }
     
@@ -1254,23 +1259,22 @@ bool RectangleDetector::IsRectangleUsingMoments(const std::vector<Point>& contou
     double momentRatio = hu2 / (hu1 * hu1);
     double skewness = hu3 / std::pow(hu1, 1.5);
     
-    // Enhanced multi-criteria check for rectangles:
-    // 1. Moment ratio should be in rectangular range (more tolerant)
-    // 2. Skewness should be low (rectangles are symmetric)
+    // Balanced criteria for rectangles - good recall with reasonable precision
+    // 1. Moment ratio should be in rectangular range
+    // 2. Skewness should be reasonable (rectangles are symmetric)
     // 3. Aspect ratio check via second moments
-    // 4. Additional angle-adaptive thresholds
     
-    // More tolerant thresholds for problematic angles (95-110°, 130-175°)
+    // Tolerant but not excessive thresholds
     bool momentCheck = (momentRatio >= 0.003 && momentRatio <= 0.15);
-    bool skewnessCheck = (std::abs(skewness) < 0.15); // More tolerant
+    bool skewnessCheck = (std::abs(skewness) < 0.15);
     
-    // Enhanced aspect ratio check with safer bounds
+    // Aspect ratio check with reasonable bounds
     double aspectRatio = (m02 > EPSILON_TOLERANCE) ? std::sqrt(m20 / m02) : 1.0;
-    bool aspectCheck = (aspectRatio > 0.2 && aspectRatio < 15.0); // More tolerant
+    bool aspectCheck = (aspectRatio > 0.2 && aspectRatio < 15.0);
     
-    // Additional ellipticity check - rectangles are less elliptical than circles
+    // Ellipticity check to reject perfect circles
     double ellipticity = hu2 / (hu1 * hu1);
-    bool ellipticityCheck = (ellipticity > 0.001); // Reject perfect circles
+    bool ellipticityCheck = (ellipticity > 0.002);
     
     return momentCheck && skewnessCheck && aspectCheck && ellipticityCheck;
 }
@@ -1430,53 +1434,12 @@ Image RectangleDetector::ApplyGaussianBlur(const Image& image, double sigma) con
     return result;
 }
 
-// Scale image by given factor
-Image RectangleDetector::ScaleImage(const Image& image, double scale) const {
-    if (scale <= 0.0 || std::abs(scale - 1.0) < 0.01) return image;
-    
-    int newWidth = static_cast<int>(image.width * scale);
-    int newHeight = static_cast<int>(image.height * scale);
-    
-    if (newWidth <= 0 || newHeight <= 0) return image;
-    
-    Image scaled(newWidth, newHeight);
-    
-    #pragma omp parallel for
-    for (int y = 0; y < newHeight; ++y) {
-        for (int x = 0; x < newWidth; ++x) {
-            // Bilinear interpolation
-            double srcX = x / scale;
-            double srcY = y / scale;
-            
-            int x1 = static_cast<int>(std::floor(srcX));
-            int y1 = static_cast<int>(std::floor(srcY));
-            int x2 = std::min(x1 + 1, image.width - 1);
-            int y2 = std::min(y1 + 1, image.height - 1);
-            
-            x1 = std::max(0, x1);
-            y1 = std::max(0, y1);
-            
-            double fx = srcX - x1;
-            double fy = srcY - y1;
-            
-            double val = 
-                image.pixels[y1][x1] * (1-fx) * (1-fy) +
-                image.pixels[y1][x2] * fx * (1-fy) +
-                image.pixels[y2][x1] * (1-fx) * fy +
-                image.pixels[y2][x2] * fx * fy;
-            
-            scaled.pixels[y][x] = static_cast<int>(std::round(val));
-        }
-    }
-    
-    return scaled;
-}
 
-// Remove duplicate rectangles found at different scales
+// Remove duplicate rectangles (simplified since we're using single-scale)
 void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectangles) const {
     if (rectangles.size() <= 1) return;
     
-    // Sort by area for consistent processing
+    // Sort by area for consistent processing (keep larger rectangles)
     std::sort(rectangles.begin(), rectangles.end(), [](const Rectangle& a, const Rectangle& b) {
         return a.width * a.height > b.width * b.height;
     });
@@ -1489,7 +1452,7 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
         for (size_t j = i + 1; j < rectangles.size(); ++j) {
             if (toRemove[j]) continue;
             
-            // Check if rectangles are similar (overlapping significantly)
+            // Check if rectangles overlap significantly
             double centerDist = std::sqrt(
                 std::pow(rectangles[i].center.x - rectangles[j].center.x, 2) +
                 std::pow(rectangles[i].center.y - rectangles[j].center.y, 2)
@@ -1498,8 +1461,9 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
             double avgSize = (rectangles[i].width + rectangles[i].height + 
                             rectangles[j].width + rectangles[j].height) / 4.0;
             
-            // If centers are close and sizes are similar, mark as duplicate
-            if (centerDist < avgSize * 0.3) {
+            // Enhanced duplicate removal for multiple detection strategies
+            if (centerDist < avgSize * 0.25) {
+                // Check overlap percentage
                 double sizeRatio = std::min(
                     static_cast<double>(rectangles[i].width * rectangles[i].height),
                     static_cast<double>(rectangles[j].width * rectangles[j].height)
@@ -1508,7 +1472,7 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
                     static_cast<double>(rectangles[j].width * rectangles[j].height)
                 );
                 
-                if (sizeRatio > 0.7) { // Similar size
+                if (sizeRatio > 0.5) { // Similar size rectangles
                     toRemove[j] = true; // Remove smaller/later one
                 }
             }
@@ -1524,3 +1488,155 @@ void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectan
         rectangles.end()
     );
 }
+
+// Enhanced preprocessing for steep angles
+Image RectangleDetector::PreprocessImageEnhanced(const Image& image) const {
+    Image result = image;
+    
+    // Apply edge enhancement before thresholding
+    Image enhanced(image.width, image.height);
+    
+    // Sobel edge detection for better edge preservation
+    #pragma omp parallel for
+    for (int y = 1; y < image.height - 1; ++y) {
+        for (int x = 1; x < image.width - 1; ++x) {
+            // Sobel X kernel
+            int gx = -image.pixels[y-1][x-1] + image.pixels[y-1][x+1] +
+                     -2*image.pixels[y][x-1] + 2*image.pixels[y][x+1] +
+                     -image.pixels[y+1][x-1] + image.pixels[y+1][x+1];
+            
+            // Sobel Y kernel  
+            int gy = -image.pixels[y-1][x-1] - 2*image.pixels[y-1][x] - image.pixels[y-1][x+1] +
+                      image.pixels[y+1][x-1] + 2*image.pixels[y+1][x] + image.pixels[y+1][x+1];
+            
+            int magnitude = static_cast<int>(std::sqrt(gx*gx + gy*gy));
+            enhanced.pixels[y][x] = std::min(255, magnitude);
+        }
+    }
+    
+    // Apply light Gaussian blur to reduce noise
+    Image blurred = ApplyGaussianBlur(enhanced, 0.5);
+    
+    // Enhanced thresholding with higher threshold for edges
+    #pragma omp parallel for
+    for (int y = 0; y < blurred.height; ++y) {
+        for (int x = 0; x < blurred.width; ++x) {
+            result.pixels[y][x] = (blurred.pixels[y][x] > 100) ? 255 : 0;
+        }
+    }
+    
+    return result;
+}
+
+// Morphological preprocessing for broken contours
+Image RectangleDetector::PreprocessImageMorphological(const Image& image) const {
+    Image result = image;
+    
+    // Standard thresholding first
+    #pragma omp parallel for
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            result.pixels[y][x] = (image.pixels[y][x] > 127) ? 255 : 0;
+        }
+    }
+    
+    // Apply morphological closing to connect broken rectangle edges
+    Image closed = ApplyMorphologyClose(result, 3);
+    
+    // Apply morphological opening to remove small noise
+    Image opened = ApplyMorphologyOpen(closed, 2);
+    
+    return opened;
+}
+
+// Morphological closing operation
+Image RectangleDetector::ApplyMorphologyClose(const Image& image, int kernelSize) const {
+    if (kernelSize < 1) return image;
+    
+    // Closing = Dilation followed by Erosion
+    Image dilated = image;
+    Image result = image;
+    
+    int halfKernel = kernelSize / 2;
+    
+    // Dilation
+    #pragma omp parallel for
+    for (int y = halfKernel; y < image.height - halfKernel; ++y) {
+        for (int x = halfKernel; x < image.width - halfKernel; ++x) {
+            int maxVal = 0;
+            for (int dy = -halfKernel; dy <= halfKernel; ++dy) {
+                for (int dx = -halfKernel; dx <= halfKernel; ++dx) {
+                    maxVal = std::max(maxVal, image.pixels[y+dy][x+dx]);
+                }
+            }
+            dilated.pixels[y][x] = maxVal;
+        }
+    }
+    
+    // Erosion
+    #pragma omp parallel for
+    for (int y = halfKernel; y < image.height - halfKernel; ++y) {
+        for (int x = halfKernel; x < image.width - halfKernel; ++x) {
+            int minVal = 255;
+            for (int dy = -halfKernel; dy <= halfKernel; ++dy) {
+                for (int dx = -halfKernel; dx <= halfKernel; ++dx) {
+                    minVal = std::min(minVal, dilated.pixels[y+dy][x+dx]);
+                }
+            }
+            result.pixels[y][x] = minVal;
+        }
+    }
+    
+    return result;
+}
+
+// Morphological opening operation
+Image RectangleDetector::ApplyMorphologyOpen(const Image& image, int kernelSize) const {
+    if (kernelSize < 1) return image;
+    
+    // Opening = Erosion followed by Dilation
+    Image eroded = image;
+    Image result = image;
+    
+    int halfKernel = kernelSize / 2;
+    
+    // Erosion
+    #pragma omp parallel for
+    for (int y = halfKernel; y < image.height - halfKernel; ++y) {
+        for (int x = halfKernel; x < image.width - halfKernel; ++x) {
+            int minVal = 255;
+            for (int dy = -halfKernel; dy <= halfKernel; ++dy) {
+                for (int dx = -halfKernel; dx <= halfKernel; ++dx) {
+                    minVal = std::min(minVal, image.pixels[y+dy][x+dx]);
+                }
+            }
+            eroded.pixels[y][x] = minVal;
+        }
+    }
+    
+    // Dilation
+    #pragma omp parallel for
+    for (int y = halfKernel; y < image.height - halfKernel; ++y) {
+        for (int x = halfKernel; x < image.width - halfKernel; ++x) {
+            int maxVal = 0;
+            for (int dy = -halfKernel; dy <= halfKernel; ++dy) {
+                for (int dx = -halfKernel; dx <= halfKernel; ++dx) {
+                    maxVal = std::max(maxVal, eroded.pixels[y+dy][x+dx]);
+                }
+            }
+            result.pixels[y][x] = maxVal;
+        }
+    }
+    
+    return result;
+}
+
+// Simplified Hough line-based rectangle detection for critical angles
+std::vector<Rectangle> RectangleDetector::DetectRectanglesUsingHoughLines(const Image& image) const {
+    std::vector<Rectangle> rectangles;
+    
+    // For now, return empty - Hough transform is complex and might not be needed
+    // if the other three strategies work well enough
+    return rectangles;
+}
+

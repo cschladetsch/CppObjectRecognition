@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "shape_detector/RectangleDetector.h"
+#include "ShapeDetector/RectangleDetector.h"
 
 class GeometryTest : public ::testing::Test {
 protected:

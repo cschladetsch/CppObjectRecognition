@@ -1,5 +1,5 @@
-#include "shape_detector/RectangleDetector.h"
-#include "shape_detector/ImageProcessor.h"
+#include "ShapeDetector/RectangleDetector.h"
+#include "ShapeDetector/ImageProcessor.h"
 #include <iostream>
 #include <termios.h>
 #include <unistd.h>

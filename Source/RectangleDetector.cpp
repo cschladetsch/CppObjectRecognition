@@ -1,4 +1,4 @@
-#include "shape_detector/RectangleDetector.h"
+#include "ShapeDetector/RectangleDetector.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>

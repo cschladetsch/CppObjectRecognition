@@ -1,6 +1,6 @@
-# Rectangle Detection System
+# Object Detection System
 
-A high-performance C++ computer vision application that detects rectangles in images using custom algorithms with **100% rotation invariance** and comprehensive visual testing capabilities.
+A high-performance C++ computer vision application that detects objects in images using custom algorithms with **100% rotation invariance** and comprehensive visual testing capabilities.
 
 🚀 **VERIFIED PERFORMANCE**: 6,259+ pixels/ms • 25+ OpenMP parallel loops • 55/55 tests passed
 

@@ -311,9 +311,20 @@ std::vector<Point> RectangleDetector::ApproximateContour(const std::vector<Point
     
     const double perimeter = CalculatePerimeter(contour);
     
+    // Try Hough-based line detection for steep angles - but only for rectangular-like shapes
+    if (contour.size() > 30 && !IsLikelyCircularContour(contour)) {
+        std::vector<Point> houghApprox = FindRectangleUsingHoughLines(contour);
+        if (houghApprox.size() == 4) {
+            return houghApprox;
+        }
+    }
+    
+    // Try smoothed contour for better rotation handling
+    std::vector<Point> smoothedContour = SmoothContourForRotation(contour);
+    
     // Try rotation-invariant corner detection first for larger contours
-    if (contour.size() > 50) {
-        std::vector<Point> rotationInvariantApprox = FindCornersRotationInvariant(contour);
+    if (smoothedContour.size() > 50) {
+        std::vector<Point> rotationInvariantApprox = FindCornersRotationInvariant(smoothedContour);
         if (rotationInvariantApprox.size() >= 4 && rotationInvariantApprox.size() <= 8) {
             return rotationInvariantApprox;
         }
@@ -890,4 +901,239 @@ double RectangleDetector::CalculateCurvature(const std::vector<Point>& contour, 
     
     // Curvature approximation: cross product normalized by average segment length
     return cross / ((len1 + len2) * 0.5);
+}
+
+// Smooth contour to reduce staircase effects from pixel discretization
+std::vector<Point> RectangleDetector::SmoothContourForRotation(const std::vector<Point>& contour) const {
+    if (contour.size() < 3) return contour;
+    
+    std::vector<Point> smoothed;
+    smoothed.reserve(contour.size());
+    
+    // Apply simple moving average to reduce pixel discretization artifacts
+    const int windowSize = 3;
+    for (size_t i = 0; i < contour.size(); ++i) {
+        double sumX = 0, sumY = 0;
+        int count = 0;
+        
+        for (int j = -windowSize; j <= windowSize; ++j) {
+            size_t idx = (i + j + contour.size()) % contour.size();
+            sumX += contour[idx].x;
+            sumY += contour[idx].y;
+            count++;
+        }
+        
+        smoothed.emplace_back(
+            static_cast<int>(std::round(sumX / count)),
+            static_cast<int>(std::round(sumY / count))
+        );
+    }
+    
+    return smoothed;
+}
+
+// Find rectangle using Hough-like line detection approach
+std::vector<Point> RectangleDetector::FindRectangleUsingHoughLines(const std::vector<Point>& contour) const {
+    if (contour.size() < 8) return std::vector<Point>();
+    
+    // Detect dominant lines in the contour
+    std::vector<std::pair<Point, Point>> lines = DetectLines(contour);
+    
+    if (lines.size() < 4) return std::vector<Point>();
+    
+    // Find pairs of perpendicular lines - need exactly 4 that form a closed rectangle
+    std::vector<std::pair<Point, Point>> selectedLines;
+    
+    // First pass: find lines that could form a rectangle
+    for (size_t i = 0; i < lines.size() && selectedLines.size() < 4; ++i) {
+        bool shouldAdd = false;
+        
+        if (selectedLines.empty()) {
+            shouldAdd = true; // Add first line
+        } else {
+            // Check perpendicularity with existing lines
+            int perpendicularCount = 0;
+            for (const auto& selectedLine : selectedLines) {
+                if (AreLinesPerpendicular(lines[i], selectedLine, 0.15)) { // Stricter tolerance
+                    perpendicularCount++;
+                }
+            }
+            
+            // For a rectangle, we need specific perpendicular relationships
+            if (selectedLines.size() == 1 && perpendicularCount == 1) {
+                shouldAdd = true; // Second line perpendicular to first
+            } else if (selectedLines.size() == 2 && perpendicularCount == 1) {
+                shouldAdd = true; // Third line perpendicular to second (parallel to first)
+            } else if (selectedLines.size() == 3 && perpendicularCount == 2) {
+                shouldAdd = true; // Fourth line perpendicular to third and first
+            }
+        }
+        
+        if (shouldAdd) {
+            selectedLines.push_back(lines[i]);
+        }
+    }
+    
+    // If we have exactly 4 lines that form a rectangle, find their intersections
+    if (selectedLines.size() == 4) {
+        std::vector<Point> corners;
+        corners.reserve(4);
+        
+        // Find intersections of adjacent lines to form corners
+        for (size_t i = 0; i < 4; ++i) {
+            size_t nextIdx = (i + 1) % 4;
+            
+            // Calculate intersection of lines i and nextIdx
+            const auto& line1 = selectedLines[i];
+            const auto& line2 = selectedLines[nextIdx];
+            
+            // Line intersection using parametric form
+            double x1 = line1.first.x, y1 = line1.first.y;
+            double x2 = line1.second.x, y2 = line1.second.y;
+            double x3 = line2.first.x, y3 = line2.first.y;
+            double x4 = line2.second.x, y4 = line2.second.y;
+            
+            double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (std::abs(denom) > EPSILON_TOLERANCE) {
+                double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+                double intersectX = x1 + t * (x2 - x1);
+                double intersectY = y1 + t * (y2 - y1);
+                
+                corners.emplace_back(
+                    static_cast<int>(std::round(intersectX)),
+                    static_cast<int>(std::round(intersectY))
+                );
+            }
+        }
+        
+        if (corners.size() == 4) {
+            return corners;
+        }
+    }
+    
+    return std::vector<Point>();
+}
+
+// Detect dominant lines in contour using simplified Hough approach
+std::vector<std::pair<Point, Point>> RectangleDetector::DetectLines(const std::vector<Point>& contour) const {
+    std::vector<std::pair<Point, Point>> lines;
+    
+    if (contour.size() < 6) return lines;
+    
+    // Use sliding window to detect line segments
+    const size_t windowSize = std::max(size_t(6), contour.size() / 8);
+    const double minLineLength = 10.0;
+    
+    for (size_t i = 0; i < contour.size(); i += windowSize / 2) {
+        size_t endIdx = std::min(i + windowSize, contour.size());
+        
+        if (endIdx - i < 4) continue;
+        
+        // Fit line to this segment using least squares
+        double sumX = 0, sumY = 0, sumXX = 0, sumXY = 0;
+        size_t count = endIdx - i;
+        
+        for (size_t j = i; j < endIdx; ++j) {
+            size_t idx = j % contour.size();
+            sumX += contour[idx].x;
+            sumY += contour[idx].y;
+            sumXX += contour[idx].x * contour[idx].x;
+            sumXY += contour[idx].x * contour[idx].y;
+        }
+        
+        double meanX = sumX / count;
+        double meanY = sumY / count;
+        
+        double denominator = sumXX - count * meanX * meanX;
+        if (std::abs(denominator) > EPSILON_TOLERANCE) {
+            double slope = (sumXY - count * meanX * meanY) / denominator;
+            double intercept = meanY - slope * meanX;
+            
+            // Create line segment from first to last point in window
+            size_t startIdx = i % contour.size();
+            size_t finalIdx = (endIdx - 1) % contour.size();
+            
+            Point start = contour[startIdx];
+            Point end = contour[finalIdx];
+            
+            // Calculate distance to verify this is actually a line
+            double lineLength = std::sqrt(
+                (end.x - start.x) * (end.x - start.x) + 
+                (end.y - start.y) * (end.y - start.y)
+            );
+            
+            if (lineLength >= minLineLength) {
+                lines.emplace_back(start, end);
+            }
+        }
+    }
+    
+    return lines;
+}
+
+// Check if two lines are perpendicular within tolerance
+bool RectangleDetector::AreLinesPerpendicular(const std::pair<Point, Point>& line1, 
+                                            const std::pair<Point, Point>& line2, double tolerance) const {
+    // Calculate direction vectors
+    double dx1 = line1.second.x - line1.first.x;
+    double dy1 = line1.second.y - line1.first.y;
+    double dx2 = line2.second.x - line2.first.x;
+    double dy2 = line2.second.y - line2.first.y;
+    
+    // Normalize vectors
+    double len1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+    double len2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+    
+    if (len1 < EPSILON_TOLERANCE || len2 < EPSILON_TOLERANCE) return false;
+    
+    dx1 /= len1; dy1 /= len1;
+    dx2 /= len2; dy2 /= len2;
+    
+    // Calculate dot product
+    double dotProduct = dx1 * dx2 + dy1 * dy2;
+    
+    // Perpendicular lines have dot product close to 0
+    return std::abs(dotProduct) < tolerance;
+}
+
+// Quick check if contour is likely circular to avoid Hough processing on circles
+bool RectangleDetector::IsLikelyCircularContour(const std::vector<Point>& contour) const {
+    if (contour.size() < 8) return false;
+    
+    // Calculate center of mass
+    double centerX = 0, centerY = 0;
+    for (const auto& point : contour) {
+        centerX += point.x;
+        centerY += point.y;
+    }
+    centerX /= contour.size();
+    centerY /= contour.size();
+    
+    // Calculate distances from center
+    std::vector<double> distances;
+    distances.reserve(contour.size());
+    for (const auto& point : contour) {
+        double dx = point.x - centerX;
+        double dy = point.y - centerY;
+        distances.push_back(std::sqrt(dx * dx + dy * dy));
+    }
+    
+    // Calculate variance in distances
+    double meanDist = 0;
+    for (double dist : distances) {
+        meanDist += dist;
+    }
+    meanDist /= distances.size();
+    
+    double variance = 0;
+    for (double dist : distances) {
+        double diff = dist - meanDist;
+        variance += diff * diff;
+    }
+    variance /= distances.size();
+    
+    double stdDev = std::sqrt(variance);
+    
+    // If standard deviation is small relative to mean distance, it's likely circular
+    return (stdDev / meanDist) < 0.15;
 }

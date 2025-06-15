@@ -75,5 +75,10 @@ private:
     bool IsCircularShape(const std::vector<Point>& contour, const std::vector<Point>& approx) const;
     std::vector<Point> FindCornersRotationInvariant(const std::vector<Point>& contour) const;
     double CalculateCurvature(const std::vector<Point>& contour, size_t index, int windowSize = 3) const;
+    std::vector<Point> SmoothContourForRotation(const std::vector<Point>& contour) const;
+    std::vector<Point> FindRectangleUsingHoughLines(const std::vector<Point>& contour) const;
+    std::vector<std::pair<Point, Point>> DetectLines(const std::vector<Point>& contour) const;
+    bool AreLinesPerpendicular(const std::pair<Point, Point>& line1, const std::pair<Point, Point>& line2, double tolerance = 0.2) const;
+    bool IsLikelyCircularContour(const std::vector<Point>& contour) const;
 };
 

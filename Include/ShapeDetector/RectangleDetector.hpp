@@ -91,6 +91,8 @@ private:
     void RemoveDuplicateRectangles(std::vector<Rectangle>& rectangles) const;
     Image PreprocessImageEnhanced(const Image& image) const;
     Image PreprocessImageMorphological(const Image& image) const;
+    Image PreprocessImageMultiThreshold(const Image& image) const;
+    Image PreprocessImageAggressive(const Image& image) const;
     std::vector<Rectangle> DetectRectanglesUsingHoughLines(const Image& image) const;
     Image ApplyMorphologyClose(const Image& image, int kernelSize) const;
     Image ApplyMorphologyOpen(const Image& image, int kernelSize) const;

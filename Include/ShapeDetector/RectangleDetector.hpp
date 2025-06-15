@@ -86,5 +86,9 @@ private:
     Point CalculateCentroid(const std::vector<Point>& contour) const;
     double CalculateOrientation(const std::vector<Point>& contour) const;
     std::vector<Point> RotateContourToCanonical(const std::vector<Point>& contour, double angle) const;
+    Image ApplyGaussianBlur(const Image& image, double sigma) const;
+    void ProcessContoursAtScale(const std::vector<std::vector<Point>>& contours, std::vector<Rectangle>& rectangles, double scale, const Image& scaledImage);
+    Image ScaleImage(const Image& image, double scale) const;
+    void RemoveDuplicateRectangles(std::vector<Rectangle>& rectangles) const;
 };
 

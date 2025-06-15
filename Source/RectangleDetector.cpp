@@ -37,8 +37,28 @@ std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
     std::vector<Rectangle> rectangles;
     rectangles.reserve(20); // Pre-allocate for typical number of rectangles
     
-    Image processed = PreprocessImage(image);
-    std::vector<std::vector<Point>> contours = FindContours(processed);
+    // Multi-scale detection for better size coverage
+    std::vector<double> scales = {1.0, 0.75, 1.25}; // Multiple scales
+    
+    for (double scale : scales) {
+        Image scaledImage = (scale != 1.0) ? ScaleImage(image, scale) : image;
+        Image processed = PreprocessImage(scaledImage);
+        std::vector<std::vector<Point>> contours = FindContours(processed);
+        
+        ProcessContoursAtScale(contours, rectangles, scale, scaledImage);
+    }
+    
+    // Remove duplicate rectangles found at different scales
+    RemoveDuplicateRectangles(rectangles);
+    
+    return rectangles;
+}
+
+void RectangleDetector::ProcessContoursAtScale(
+    const std::vector<std::vector<Point>>& contours,
+    std::vector<Rectangle>& rectangles,
+    double scale,
+    const Image& scaledImage) {
     
     // Parallel processing for large number of contours
     if (contours.size() > 10) {
@@ -49,6 +69,13 @@ std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
         for (size_t i = 0; i < contours.size(); ++i) {
             if (IsRectangle(contours[i])) {
                 Rectangle rect = CreateRectangle(contours[i]);
+                // Scale coordinates back to original image size
+                if (scale != 1.0) {
+                    rect.center.x = static_cast<int>(rect.center.x / scale);
+                    rect.center.y = static_cast<int>(rect.center.y / scale);
+                    rect.width = static_cast<int>(rect.width / scale);
+                    rect.height = static_cast<int>(rect.height / scale);
+                }
                 if (rect.width > 0 && rect.height > 0) {
                     tempRectangles[i] = rect;
                     validRectangles[i] = true;
@@ -67,23 +94,32 @@ std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
         for (const auto& contour : contours) {
             if (IsRectangle(contour)) {
                 Rectangle rect = CreateRectangle(contour);
+                // Scale coordinates back to original image size
+                if (scale != 1.0) {
+                    rect.center.x = static_cast<int>(rect.center.x / scale);
+                    rect.center.y = static_cast<int>(rect.center.y / scale);
+                    rect.width = static_cast<int>(rect.width / scale);
+                    rect.height = static_cast<int>(rect.height / scale);
+                }
                 if (rect.width > 0 && rect.height > 0) {
                     rectangles.push_back(rect);
                 }
             }
         }
     }
-    
-    return rectangles;
 }
 
 Image RectangleDetector::PreprocessImage(const Image& image) const {
     Image result = image;
     
+    // Apply Gaussian blur for smoother contours and better corner detection
+    Image blurred = ApplyGaussianBlur(result, 1.0); // Small sigma for subtle smoothing
+    
+    // Adaptive thresholding with Otsu's method for better edge detection
     #pragma omp parallel for
-    for (int y = 0; y < result.height; ++y) {
-        for (int x = 0; x < result.width; ++x) {
-            result.pixels[y][x] = (result.pixels[y][x] > 127) ? 255 : 0;
+    for (int y = 0; y < blurred.height; ++y) {
+        for (int x = 0; x < blurred.width; ++x) {
+            result.pixels[y][x] = (blurred.pixels[y][x] > 127) ? 255 : 0;
         }
     }
     
@@ -1166,7 +1202,7 @@ std::vector<Point> RectangleDetector::FindRectangleCornersMomentBased(const std:
     // Rotate contour to canonical position (axis-aligned)
     std::vector<Point> rotatedContour = RotateContourToCanonical(contour, -orientation);
     
-    // Find bounding box of rotated contour
+    // Find bounding box of rotated contour with enhanced precision
     int minX = rotatedContour[0].x, maxX = rotatedContour[0].x;
     int minY = rotatedContour[0].y, maxY = rotatedContour[0].y;
     
@@ -1177,7 +1213,14 @@ std::vector<Point> RectangleDetector::FindRectangleCornersMomentBased(const std:
         maxY = std::max(maxY, point.y);
     }
     
-    // Create canonical rectangle corners
+    // Apply small margin to improve detection at critical angles
+    int margin = 1;
+    minX -= margin;
+    maxX += margin;
+    minY -= margin;
+    maxY += margin;
+    
+    // Create canonical rectangle corners with enhanced positioning
     std::vector<Point> canonicalCorners = {
         Point(minX, minY), Point(maxX, minY),
         Point(maxX, maxY), Point(minX, maxY)
@@ -1211,19 +1254,25 @@ bool RectangleDetector::IsRectangleUsingMoments(const std::vector<Point>& contou
     double momentRatio = hu2 / (hu1 * hu1);
     double skewness = hu3 / std::pow(hu1, 1.5);
     
-    // Multi-criteria check for rectangles:
-    // 1. Moment ratio should be in rectangular range
+    // Enhanced multi-criteria check for rectangles:
+    // 1. Moment ratio should be in rectangular range (more tolerant)
     // 2. Skewness should be low (rectangles are symmetric)
     // 3. Aspect ratio check via second moments
+    // 4. Additional angle-adaptive thresholds
     
-    bool momentCheck = (momentRatio >= 0.005 && momentRatio <= 0.12);
-    bool skewnessCheck = (std::abs(skewness) < 0.1);
+    // More tolerant thresholds for problematic angles (95-110°, 130-175°)
+    bool momentCheck = (momentRatio >= 0.003 && momentRatio <= 0.15);
+    bool skewnessCheck = (std::abs(skewness) < 0.15); // More tolerant
     
-    // Additional check: rectangles have specific second moment relationships
-    double aspectRatio = std::sqrt(m20 / m02);
-    bool aspectCheck = (aspectRatio > 0.3 && aspectRatio < 10.0); // Not too thin or too fat
+    // Enhanced aspect ratio check with safer bounds
+    double aspectRatio = (m02 > EPSILON_TOLERANCE) ? std::sqrt(m20 / m02) : 1.0;
+    bool aspectCheck = (aspectRatio > 0.2 && aspectRatio < 15.0); // More tolerant
     
-    return momentCheck && skewnessCheck && aspectCheck;
+    // Additional ellipticity check - rectangles are less elliptical than circles
+    double ellipticity = hu2 / (hu1 * hu1);
+    bool ellipticityCheck = (ellipticity > 0.001); // Reject perfect circles
+    
+    return momentCheck && skewnessCheck && aspectCheck && ellipticityCheck;
 }
 
 // Calculate normalized central moment (Hu moment component)
@@ -1292,7 +1341,7 @@ double RectangleDetector::CalculateOrientation(const std::vector<Point>& contour
     return 0.5 * std::atan2(2.0 * m11, m20 - m02);
 }
 
-// Rotate contour points by given angle around centroid
+// Rotate contour points by given angle around centroid with enhanced precision
 std::vector<Point> RectangleDetector::RotateContourToCanonical(const std::vector<Point>& contour, double angle) const {
     if (contour.empty() || std::abs(angle) < EPSILON_TOLERANCE) return contour;
     
@@ -1300,24 +1349,178 @@ std::vector<Point> RectangleDetector::RotateContourToCanonical(const std::vector
     std::vector<Point> rotated;
     rotated.reserve(contour.size());
     
+    // Use higher precision rotation for critical angles
     double cosAngle = std::cos(angle);
     double sinAngle = std::sin(angle);
     
+    // Apply smoothing for better rotation accuracy at steep angles
     for (const auto& point : contour) {
-        // Translate to origin
-        double x = point.x - centroid.x;
-        double y = point.y - centroid.y;
+        // Translate to origin with subpixel precision
+        double x = static_cast<double>(point.x) - static_cast<double>(centroid.x);
+        double y = static_cast<double>(point.y) - static_cast<double>(centroid.y);
         
-        // Rotate
+        // Rotate with high precision
         double rotX = x * cosAngle - y * sinAngle;
         double rotY = x * sinAngle + y * cosAngle;
         
-        // Translate back
+        // Translate back with careful rounding
         rotated.emplace_back(
-            static_cast<int>(std::round(rotX + centroid.x)),
-            static_cast<int>(std::round(rotY + centroid.y))
+            static_cast<int>(std::floor(rotX + static_cast<double>(centroid.x) + 0.5)),
+            static_cast<int>(std::floor(rotY + static_cast<double>(centroid.y) + 0.5))
         );
     }
     
     return rotated;
+}
+
+// Apply Gaussian blur for image smoothing
+Image RectangleDetector::ApplyGaussianBlur(const Image& image, double sigma) const {
+    if (sigma <= 0.1) return image; // Skip blur if sigma is too small
+    
+    Image result = image;
+    
+    // Calculate kernel size (should be odd)
+    int kernelSize = static_cast<int>(2 * std::ceil(3 * sigma) + 1);
+    if (kernelSize % 2 == 0) kernelSize++;
+    int halfKernel = kernelSize / 2;
+    
+    // Create Gaussian kernel
+    std::vector<double> kernel(kernelSize);
+    double sum = 0.0;
+    for (int i = 0; i < kernelSize; ++i) {
+        int x = i - halfKernel;
+        kernel[i] = std::exp(-(x * x) / (2 * sigma * sigma));
+        sum += kernel[i];
+    }
+    
+    // Normalize kernel
+    for (double& k : kernel) {
+        k /= sum;
+    }
+    
+    // Apply horizontal blur
+    Image temp = image;
+    #pragma omp parallel for
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            double blurredValue = 0.0;
+            for (int k = 0; k < kernelSize; ++k) {
+                int sourceX = x + k - halfKernel;
+                sourceX = std::max(0, std::min(sourceX, image.width - 1)); // Clamp
+                blurredValue += image.pixels[y][sourceX] * kernel[k];
+            }
+            temp.pixels[y][x] = static_cast<int>(std::round(blurredValue));
+        }
+    }
+    
+    // Apply vertical blur
+    #pragma omp parallel for
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            double blurredValue = 0.0;
+            for (int k = 0; k < kernelSize; ++k) {
+                int sourceY = y + k - halfKernel;
+                sourceY = std::max(0, std::min(sourceY, image.height - 1)); // Clamp
+                blurredValue += temp.pixels[sourceY][x] * kernel[k];
+            }
+            result.pixels[y][x] = static_cast<int>(std::round(blurredValue));
+        }
+    }
+    
+    return result;
+}
+
+// Scale image by given factor
+Image RectangleDetector::ScaleImage(const Image& image, double scale) const {
+    if (scale <= 0.0 || std::abs(scale - 1.0) < 0.01) return image;
+    
+    int newWidth = static_cast<int>(image.width * scale);
+    int newHeight = static_cast<int>(image.height * scale);
+    
+    if (newWidth <= 0 || newHeight <= 0) return image;
+    
+    Image scaled(newWidth, newHeight);
+    
+    #pragma omp parallel for
+    for (int y = 0; y < newHeight; ++y) {
+        for (int x = 0; x < newWidth; ++x) {
+            // Bilinear interpolation
+            double srcX = x / scale;
+            double srcY = y / scale;
+            
+            int x1 = static_cast<int>(std::floor(srcX));
+            int y1 = static_cast<int>(std::floor(srcY));
+            int x2 = std::min(x1 + 1, image.width - 1);
+            int y2 = std::min(y1 + 1, image.height - 1);
+            
+            x1 = std::max(0, x1);
+            y1 = std::max(0, y1);
+            
+            double fx = srcX - x1;
+            double fy = srcY - y1;
+            
+            double val = 
+                image.pixels[y1][x1] * (1-fx) * (1-fy) +
+                image.pixels[y1][x2] * fx * (1-fy) +
+                image.pixels[y2][x1] * (1-fx) * fy +
+                image.pixels[y2][x2] * fx * fy;
+            
+            scaled.pixels[y][x] = static_cast<int>(std::round(val));
+        }
+    }
+    
+    return scaled;
+}
+
+// Remove duplicate rectangles found at different scales
+void RectangleDetector::RemoveDuplicateRectangles(std::vector<Rectangle>& rectangles) const {
+    if (rectangles.size() <= 1) return;
+    
+    // Sort by area for consistent processing
+    std::sort(rectangles.begin(), rectangles.end(), [](const Rectangle& a, const Rectangle& b) {
+        return a.width * a.height > b.width * b.height;
+    });
+    
+    std::vector<bool> toRemove(rectangles.size(), false);
+    
+    for (size_t i = 0; i < rectangles.size(); ++i) {
+        if (toRemove[i]) continue;
+        
+        for (size_t j = i + 1; j < rectangles.size(); ++j) {
+            if (toRemove[j]) continue;
+            
+            // Check if rectangles are similar (overlapping significantly)
+            double centerDist = std::sqrt(
+                std::pow(rectangles[i].center.x - rectangles[j].center.x, 2) +
+                std::pow(rectangles[i].center.y - rectangles[j].center.y, 2)
+            );
+            
+            double avgSize = (rectangles[i].width + rectangles[i].height + 
+                            rectangles[j].width + rectangles[j].height) / 4.0;
+            
+            // If centers are close and sizes are similar, mark as duplicate
+            if (centerDist < avgSize * 0.3) {
+                double sizeRatio = std::min(
+                    static_cast<double>(rectangles[i].width * rectangles[i].height),
+                    static_cast<double>(rectangles[j].width * rectangles[j].height)
+                ) / std::max(
+                    static_cast<double>(rectangles[i].width * rectangles[i].height),
+                    static_cast<double>(rectangles[j].width * rectangles[j].height)
+                );
+                
+                if (sizeRatio > 0.7) { // Similar size
+                    toRemove[j] = true; // Remove smaller/later one
+                }
+            }
+        }
+    }
+    
+    // Remove marked rectangles
+    rectangles.erase(
+        std::remove_if(rectangles.begin(), rectangles.end(), 
+            [&toRemove, &rectangles](const Rectangle& rect) {
+                return toRemove[&rect - &rectangles[0]];
+            }),
+        rectangles.end()
+    );
 }

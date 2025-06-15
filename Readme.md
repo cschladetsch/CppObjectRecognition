@@ -21,17 +21,23 @@ Does not use any libraries, just naked C++.
 ## Project Structure
 
 ```
-CppFacialRegognition/
-├── include/
-│   └── shape_detector/
-│       ├── image_processor.h      # Image processing utilities
-│       └── rectangle_detector.h   # Rectangle detection algorithms
-├── src/
-│   ├── image_processor.cpp        # Image processing implementation
-│   ├── main.cpp                   # Main application
-│   └── rectangle_detector.cpp     # Rectangle detection implementation
-├── test/                          # Unit tests
-├── build/                         # Build directory
+CppRectangleRecognition/
+├── Include/
+│   └── ShapeDetector/
+│       ├── ImageProcessor.h       # Image processing utilities
+│       └── RectangleDetector.h    # Rectangle detection algorithms
+├── Source/
+│   ├── ImageProcessor.cpp         # Image processing implementation
+│   ├── Main.cpp                   # Main application
+│   └── RectangleDetector.cpp      # Rectangle detection implementation
+├── Test/                          # Unit tests
+│   ├── TestGeometry.cpp           # Geometry structure tests
+│   ├── TestImageProcessor.cpp     # Image processing tests
+│   ├── TestMain.cpp               # Test runner
+│   ├── TestRectangleDetector.cpp  # Rectangle detection tests
+│   └── TestPerformance.cpp        # Performance benchmarks
+├── build/                         # Build directory (generated)
+├── resources/                     # Demo images and resources
 └── CMakeLists.txt                # CMake configuration
 ```
 
@@ -62,6 +68,7 @@ $ mkdir build && cd build && cmake .. && make
 ### Running
 
 ```bash
+cd build
 ./CppRectangleRecognition
 ```
 
@@ -100,9 +107,19 @@ Or run tests directly:
 ./tests
 ```
 
+### Performance Testing
+
+Run performance benchmarks:
+
+```bash
+./TestPerformance
+```
+
+This will test rectangle detection performance with various image sizes and complexity levels.
+
 ## Configuration
 
-Rectangle detection parameters can be adjusted in `main.cpp`:
+Rectangle detection parameters can be adjusted in `Main.cpp`:
 
 - `setMinArea()`: Minimum rectangle area threshold
 - `setMaxArea()`: Maximum rectangle area threshold  

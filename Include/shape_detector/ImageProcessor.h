@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rectangle_detector.h"
+#include "RectangleDetector.h"
 #include <string>
 #include <fstream>
 

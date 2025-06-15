@@ -36,20 +36,20 @@ Rects could be rotated, in this demo image they are not.
 
 ```
 CppRectangleRecognition/
-├── Include/                          # 📁 Header files (See Include/README.md)
-│   ├── README.md                     # 📚 Include directory documentation  
+├── Include/                          # 📁 Header files (See Include/Readme.md)
+│   ├── Readme.md                     # 📚 Include directory documentation  
 │   ├── ShapeDetector/
 │   │   ├── ImageProcessor.hpp        # 🖼️ Image processing utilities
 │   │   └── RectangleDetector.hpp     # 🔍 Rectangle detection algorithms
 │   └── Utils.hpp                     # 🛠️ Utility structures and functions
-├── Source/                           # 📁 Implementation files (See Source/README.md)
-│   ├── README.md                     # 📚 Source directory documentation
+├── Source/                           # 📁 Implementation files (See Source/Readme.md)
+│   ├── Readme.md                     # 📚 Source directory documentation
 │   ├── ImageProcessor.cpp            # 🖼️ Image processing implementation
 │   ├── Main.cpp                      # 🚀 Main application entry point
 │   ├── RectangleDetector.cpp         # 🔍 Rectangle detection implementation
 │   └── VisualTest.cpp                # 🎨 Visual testing suite
-├── Test/                             # 📁 Test suites (See Test/README.md)
-│   ├── README.md                     # 📚 Test directory documentation
+├── Test/                             # 📁 Test suites (See Test/Readme.md)
+│   ├── Readme.md                     # 📚 Test directory documentation
 │   ├── TestAdvancedRectangleDetection.cpp  # 🧪 Advanced detection scenarios
 │   ├── TestComprehensiveRotation.cpp       # 🔄 100% rotation coverage tests
 │   ├── TestGeometry.cpp              # 📐 Geometry structure tests
@@ -71,9 +71,9 @@ CppRectangleRecognition/
 
 Each major directory contains comprehensive documentation:
 
-- **[Include/README.md](Include/README.md)** - Header file architecture, API documentation, algorithm pipeline diagrams
-- **[Source/README.md](Source/README.md)** - Implementation details, performance optimizations, technical architecture  
-- **[Test/README.md](Test/README.md)** - Test coverage, validation strategies, comprehensive test suite documentation
+- **[Include/Readme.md](Include/Readme.md)** - Header file architecture, API documentation, algorithm pipeline diagrams
+- **[Source/Readme.md](Source/Readme.md)** - Implementation details, performance optimizations, technical architecture  
+- **[Test/Readme.md](Test/Readme.md)** - Test coverage, validation strategies, comprehensive test suite documentation
 
 ## Building
 

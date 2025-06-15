@@ -351,8 +351,9 @@ int main() {
                      "Complex scene - should detect only rectangles");
 
   std::cout << "=== All visual tests completed ===" << std::endl;
-  std::cout << "Check the generated .png files in Output/Images/ to see the results!"
-            << std::endl;
+  std::cout
+      << "Check the generated .png files in Output/Images/ to see the results!"
+      << std::endl;
   std::cout << "Red outlines indicate detected rectangles." << std::endl;
 
   return 0;

@@ -47,7 +47,8 @@ void processImage(RectangleDetector &detector, int testNumber,
   std::cout << "Saving output image...\n";
   ImageProcessor::SavePNGImage(outputImage, "Output/Images/output.png");
 
-  std::cout << "Processing complete! Output saved as: Output/Images/output.png\n";
+  std::cout
+      << "Processing complete! Output saved as: Output/Images/output.png\n";
 
   // Display the result
   std::cout << "Displaying result...\n";
@@ -79,8 +80,8 @@ void processImage(RectangleDetector &detector, int testNumber,
       } else if (system("which xdg-open >/dev/null 2>&1") == 0) {
         system("xdg-open Output/Images/output.png &");
       } else {
-        std::cout
-            << "No image viewer found. Please view Output/Images/output.png manually.\n";
+        std::cout << "No image viewer found. Please view "
+                     "Output/Images/output.png manually.\n";
       }
     }
   } else {

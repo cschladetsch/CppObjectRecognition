@@ -16,6 +16,9 @@ include_directories(Include)
 file(GLOB_RECURSE SOURCES "Source/*.cpp")
 file(GLOB_RECURSE HEADERS "Include/*.h" "Include/*.hpp")
 
+# Remove VisualTest.cpp from main executable sources
+list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/Source/VisualTest.cpp")
+
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 # Link OpenMP if found
@@ -79,5 +82,20 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Test/TestPerformance.cpp")
     # Link OpenMP if found
     if(OpenMP_CXX_FOUND)
         target_link_libraries(TestPerformance OpenMP::OpenMP_CXX)
+    endif()
+endif()
+
+# Visual test executable
+if(EXISTS "${CMAKE_SOURCE_DIR}/Source/VisualTest.cpp")
+    # Get all sources except Main.cpp and VisualTest.cpp
+    file(GLOB_RECURSE ALL_SOURCES "Source/*.cpp")
+    list(REMOVE_ITEM ALL_SOURCES "${CMAKE_SOURCE_DIR}/Source/Main.cpp")
+    list(REMOVE_ITEM ALL_SOURCES "${CMAKE_SOURCE_DIR}/Source/VisualTest.cpp")
+    
+    add_executable(VisualTest Source/VisualTest.cpp ${ALL_SOURCES})
+    
+    # Link OpenMP if found
+    if(OpenMP_CXX_FOUND)
+        target_link_libraries(VisualTest OpenMP::OpenMP_CXX)
     endif()
 endif()

@@ -85,20 +85,34 @@ void ImageProcessor::SavePPMImage(const ColorImage& image, const std::string& fi
     }
 }
 
+void ImageProcessor::SavePNGImage(const ColorImage& image, const std::string& filepath) {
+    // First save as PPM, then convert to PNG using system command
+    std::string tempPPM = filepath + ".temp.ppm";
+    SavePPMImage(image, tempPPM);
+    
+    // Use ImageMagick convert command to convert PPM to PNG
+    std::string command = "convert " + tempPPM + " " + filepath + " 2>/dev/null";
+    int result = system(command.c_str());
+    
+    // Clean up temporary PPM file
+    std::string cleanup = "rm -f " + tempPPM;
+    system(cleanup.c_str());
+    
+    if (result != 0) {
+        std::cerr << "Warning: PNG conversion failed, you may need to install ImageMagick" << std::endl;
+        std::cerr << "Install with: sudo apt update && sudo apt install imagemagick" << std::endl;
+    }
+}
+
 ColorImage ImageProcessor::CreateColorImage(const Image& grayImage, const std::vector<Rectangle>& rectangles) {
     ColorImage colorImage(grayImage.width, grayImage.height);
     
-    // Convert grayscale to color (white pixels become grey, black stays black)
+    // Convert grayscale to color (preserve all original pixel values)
     for (int y = 0; y < grayImage.height; ++y) {
         for (int x = 0; x < grayImage.width; ++x) {
             unsigned char grayValue = static_cast<unsigned char>(grayImage.pixels[y][x]);
-            if (grayValue == 255) {
-                // Convert white rectangles to medium grey
-                colorImage.pixels[y][x] = ColorPixel(128, 128, 128);
-            } else {
-                // Keep black background as black
-                colorImage.pixels[y][x] = ColorPixel(grayValue, grayValue, grayValue);
-            }
+            // Show the original image as-is in grayscale
+            colorImage.pixels[y][x] = ColorPixel(grayValue, grayValue, grayValue);
         }
     }
     
@@ -106,12 +120,12 @@ ColorImage ImageProcessor::CreateColorImage(const Image& grayImage, const std::v
     for (const auto& rect : rectangles) {
         std::vector<Point> corners = GenerateRectangleCorners(rect);
         
-        // Draw lines between consecutive corners in red
+        // Draw thick lines between consecutive corners in red (4x thickness)
         for (size_t i = 0; i < 4; ++i) {
             Point p1 = corners[i];
             Point p2 = corners[(i + 1) % 4];
             
-            DrawColorLine(colorImage, p1, p2, ColorPixel(255, 0, 0)); // Red color
+            DrawThickColorLine(colorImage, p1, p2, ColorPixel(255, 0, 0), 4); // Red color, 4x thickness
         }
     }
     
@@ -174,9 +188,9 @@ void ImageProcessor::DrawRectangles(Image& image, const std::vector<Rectangle>& 
 std::vector<Point> ImageProcessor::GenerateRectangleCorners(const Rectangle& rect) {
     std::vector<Point> corners;
     
-    double angleRad = rect.angle * M_PI / 180.0;
-    double cosAngle = std::cos(angleRad);
-    double sinAngle = std::sin(angleRad);
+    // rect.angle is already in radians
+    double cosAngle = std::cos(rect.angle);
+    double sinAngle = std::sin(rect.angle);
     
     // Half dimensions
     double halfW = rect.width / 2.0;
@@ -284,6 +298,45 @@ void ImageProcessor::DrawColorLine(ColorImage& image, const Point& p1, const Poi
             err += dx;
             y += sy;
         }
+    }
+}
+
+void ImageProcessor::DrawThickColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color, int thickness) {
+    // Draw multiple parallel lines to create thickness
+    int halfThickness = thickness / 2;
+    
+    // Calculate line direction vector
+    int dx = p2.x - p1.x;
+    int dy = p2.y - p1.y;
+    double length = std::sqrt(dx * dx + dy * dy);
+    
+    if (length == 0) {
+        // Single point, draw a thick point
+        for (int offsetY = -halfThickness; offsetY <= halfThickness; ++offsetY) {
+            for (int offsetX = -halfThickness; offsetX <= halfThickness; ++offsetX) {
+                int x = p1.x + offsetX;
+                int y = p1.y + offsetY;
+                if (x >= 0 && x < image.width && y >= 0 && y < image.height) {
+                    image.pixels[y][x] = color;
+                }
+            }
+        }
+        return;
+    }
+    
+    // Normalized perpendicular vector
+    double perpX = -dy / length;
+    double perpY = dx / length;
+    
+    // Draw parallel lines
+    for (int offset = -halfThickness; offset <= halfThickness; ++offset) {
+        Point newP1, newP2;
+        newP1.x = static_cast<int>(p1.x + offset * perpX);
+        newP1.y = static_cast<int>(p1.y + offset * perpY);
+        newP2.x = static_cast<int>(p2.x + offset * perpX);
+        newP2.y = static_cast<int>(p2.y + offset * perpY);
+        
+        DrawColorLine(image, newP1, newP2, color);
     }
 }
 
@@ -556,8 +609,9 @@ void ImageProcessor::DrawFilledTriangle(Image& image, const Point& p1, const Poi
 }
 
 void ImageProcessor::DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle, int color) {
-    double cosA = std::cos(angle * M_PI / 180.0);
-    double sinA = std::sin(angle * M_PI / 180.0);
+    // angle is in radians
+    double cosA = std::cos(angle);
+    double sinA = std::sin(angle);
     
     // Draw ellipse using parametric form
     for (double t = 0; t < 2 * M_PI; t += 0.01) {
@@ -579,8 +633,9 @@ void ImageProcessor::DrawEllipse(Image& image, int centerX, int centerY, int rad
 }
 
 void ImageProcessor::DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle, int color) {
-    double cosA = std::cos(angle * M_PI / 180.0);
-    double sinA = std::sin(angle * M_PI / 180.0);
+    // angle is in radians
+    double cosA = std::cos(angle);
+    double sinA = std::sin(angle);
     
     // Get bounding box
     int maxRadius = std::max(radiusX, radiusY);
@@ -633,9 +688,9 @@ Image ImageProcessor::CreateTestImageWithMixedShapes(int width, int height) {
     Point t6(4*width/5 + 30, height/5 + 50);
     DrawTriangle(image, t4, t5, t6, 255);
     
-    // Add ellipses
-    DrawFilledEllipse(image, width/2, height/2, 60, 30, 30, 255);
-    DrawEllipse(image, width/4, 3*height/4, 40, 25, -30, 255);
+    // Add ellipses (angles in radians)
+    DrawFilledEllipse(image, width/2, height/2, 60, 30, 30 * M_PI / 180.0, 255);
+    DrawEllipse(image, width/4, 3*height/4, 40, 25, -30 * M_PI / 180.0, 255);
     
     return image;
 }

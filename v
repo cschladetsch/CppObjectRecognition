@@ -1,5 +1,7 @@
 #!/bin/bash
 
+./b
+
 echo "Rectangle Detection - Image Viewer Script"
 echo "=========================================="
 
@@ -19,30 +21,31 @@ if ! make > /dev/null 2>&1; then
     exit 1
 fi
 
-echo "Running rectangle detection application..."
-./CppRectangleRecognition
+echo "Running visual test application..."
+./VisualTest
 
-# Check if output file exists
-if [[ ! -f "output.ppm" ]]; then
-    echo "Error: PPM output file not found"
+# Check if output files exist
+if [[ ! -f "visual_test_mixed_shapes.png" ]]; then
+    echo "Error: Visual test output files not found"
     exit 1
 fi
 
 echo ""
-echo "Converting PPM file to PNG for better viewing..."
+echo "PNG files generated directly by visual test..."
 
-# Convert PPM to PNG for better compatibility
-convert output.ppm output.png
-
+echo ""
 echo "Files created:"
-echo "  - output.ppm  (color image with original in grey and detected rectangles in red)"
-echo "  - output.png  (converted for viewing)"
+echo "  - visual_test_circles_only.png     (circles only - 0 rectangles detected)"
+echo "  - visual_test_triangles_only.png   (triangles only - 0 rectangles detected)"
+echo "  - visual_test_rectangles_only.png  (rectangles only - all detected)"
+echo "  - visual_test_mixed_shapes.png     (mixed shapes - only rectangles detected)"
+echo "  - visual_test_complex_scene.png    (complex scene - only rectangles detected)"
 
 echo ""
 echo "Image Information:"
 echo "=================="
-echo "Output image:"
-identify output.ppm
+echo "Mixed shapes test image:"
+identify visual_test_mixed_shapes.png
 
 echo ""
 echo "Display Options:"
@@ -52,46 +55,48 @@ echo "================"
 if grep -qi microsoft /proc/version 2>/dev/null; then
     echo "WSL detected. Choose viewing option:"
     echo ""
-    echo "1. Open PNG file with Windows default viewer:"
-    echo "   explorer.exe output.png"
+    echo "1. Open PNG files with Windows default viewer:"
+    echo "   explorer.exe visual_test_mixed_shapes.png"
+    echo "   explorer.exe visual_test_rectangles_only.png"
     echo ""
     echo "2. If you have X11 forwarding set up:"
-    echo "   display output.ppm &"
+    echo "   display visual_test_mixed_shapes.png &"
     echo ""
-    echo "3. View as ASCII art (rough approximation):"
-    
-    # Create simple ASCII representation
-    echo ""
-    echo "Output image (ASCII approximation):"
-    convert output.ppm -resize 60x40 txt:- | grep -v '^#' | awk '{if($3=="black") printf "#"; else printf " "; if(NR%60==0) printf "\n"}'
+    echo "3. View all test results:"
+    echo "   explorer.exe visual_test_*.png"
     
     echo ""
-    echo "Opening PNG file with Windows explorer..."
-    explorer.exe output.png 2>/dev/null &
+    echo "Opening mixed shapes test with Windows explorer..."
+    explorer.exe visual_test_mixed_shapes.png 2>/dev/null &
+    
+    echo "Opening rectangles only test with Windows explorer..."
+    explorer.exe visual_test_rectangles_only.png 2>/dev/null &
     
 else
     echo "Linux system detected."
     echo "1. Use display command (ImageMagick):"
-    echo "   display output.ppm &"
+    echo "   display visual_test_mixed_shapes.png &"
     echo ""
     echo "2. Use other image viewers:"
-    echo "   eog output.png &    # GNOME"
-    echo "   feh output.png &    # Lightweight"
-    echo "   gimp output.png &   # Advanced editing"
+    echo "   eog visual_test_*.png &    # GNOME - view all"
+    echo "   feh visual_test_*.png &    # Lightweight - view all"
+    echo "   gimp visual_test_mixed_shapes.png &   # Advanced editing"
     
     # Try to open with available viewers
     if command -v display &> /dev/null; then
         echo ""
-        echo "Opening with ImageMagick display..."
-        display output.ppm &
+        echo "Opening mixed shapes test with ImageMagick display..."
+        display visual_test_mixed_shapes.png &
+        echo "Opening rectangles only test with ImageMagick display..."
+        display visual_test_rectangles_only.png &
     elif command -v eog &> /dev/null; then
         echo ""
-        echo "Opening with Eye of GNOME..."
-        eog output.png &
+        echo "Opening visual tests with Eye of GNOME..."
+        eog visual_test_*.png &
     elif command -v feh &> /dev/null; then
         echo ""
-        echo "Opening with feh..."
-        feh output.png &
+        echo "Opening visual tests with feh..."
+        feh visual_test_*.png &
     fi
 fi
 

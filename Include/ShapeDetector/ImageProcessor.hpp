@@ -24,6 +24,7 @@ public:
     static Image LoadPGMImage(const std::string& filepath);
     static void SavePGMImage(const Image& image, const std::string& filepath);
     static void SavePPMImage(const ColorImage& image, const std::string& filepath);
+    static void SavePNGImage(const ColorImage& image, const std::string& filepath);
     static ColorImage CreateColorImage(const Image& grayImage, const std::vector<Rectangle>& rectangles);
     static Image ApplyThreshold(const Image& image, int threshold = 127);
     static Image ApplyGaussianBlur(const Image& image, int kernelSize = 5);
@@ -34,8 +35,8 @@ public:
     static void DrawFilledCircle(Image& image, int centerX, int centerY, int radius, int color = 255);
     static void DrawTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color = 255);
     static void DrawFilledTriangle(Image& image, const Point& p1, const Point& p2, const Point& p3, int color = 255);
-    static void DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255);
-    static void DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255);
+    static void DrawEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255); // angle in radians
+    static void DrawFilledEllipse(Image& image, int centerX, int centerY, int radiusX, int radiusY, double angle = 0.0, int color = 255); // angle in radians
     
 private:
     static std::vector<std::vector<double>> CreateGaussianKernel(int size);
@@ -46,5 +47,6 @@ private:
     static std::vector<Point> GenerateRectangleCorners(const Rectangle& rect);
     static void DrawLine(Image& image, const Point& p1, const Point& p2);
     static void DrawColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color);
+    static void DrawThickColorLine(ColorImage& image, const Point& p1, const Point& p2, const ColorPixel& color, int thickness);
 };
 

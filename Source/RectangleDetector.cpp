@@ -32,7 +32,8 @@ std::vector<Rectangle> RectangleDetector::DetectRectangles(const Image& image) {
     std::vector<std::vector<Point>> contours = FindContours(processed);
     
     
-    for (const auto& contour : contours) {
+    for (size_t i = 0; i < contours.size(); ++i) {
+        const auto& contour = contours[i];
         if (IsRectangle(contour)) {
             Rectangle rect = CreateRectangle(contour);
             if (rect.width > 0 && rect.height > 0) {
@@ -140,6 +141,7 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     
     std::vector<Point> approx = ApproximateContour(contour, approxEpsilon_);
     
+    
     // First check: must have exactly 4 vertices for a rectangle
     if (approx.size() != 4) {
         // Allow 5-6 vertices for slightly imperfect rectangles
@@ -166,6 +168,7 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
         int next = (i + 1) % 4;
         double angle = CalculateCornerAngleFast(approx[prev], approx[i], approx[next]);
         
+        
         // Rectangle corners should be close to π/2 radians (allow ~0.6 radians tolerance, about 34 degrees)
         if (std::abs(angle - std::numbers::pi / 2.0) > 0.6) {
             return false;
@@ -184,9 +187,12 @@ bool RectangleDetector::IsRectangle(const std::vector<Point>& contour) const {
     double boundingBoxArea = (maxX - minX) * (maxY - minY);
     double rectangularity = area / boundingBoxArea;
     
+    
     // For a perfect rectangle, this ratio should be close to 1
-    // Allow some tolerance for rotated rectangles
-    if (rectangularity < 0.6) return false;
+    // Allow more tolerance for rotated rectangles (45° rotation gives ~0.5)
+    if (rectangularity < 0.5) {
+        return false;
+    }
     
     return true;
 }
@@ -320,6 +326,7 @@ Rectangle RectangleDetector::CreateRectangle(const std::vector<Point>& contour) 
     // Clean up the approximation - remove duplicate points
     std::vector<Point> cleanCorners = CleanupCorners(approx);
     
+    
     // Try to form a proper rectangle with 4 corners
     if (cleanCorners.size() < 3) {
         // Not enough points for any polygon, reject
@@ -363,16 +370,19 @@ Rectangle RectangleDetector::CreateRectangle(const std::vector<Point>& contour) 
             }
         }
         
-        const double edge1 = edgeLengths[0];
-        const double edge2 = edgeLengths[1];
+        // For a rectangle, opposite edges should be equal
+        // We need to find which edges are the width and height
+        // Compare edge 0 with edge 2 (opposite) and edge 1 with edge 3 (opposite)
+        double avgLength1 = (edgeLengths[0] + edgeLengths[2]) / 2.0;
+        double avgLength2 = (edgeLengths[1] + edgeLengths[3]) / 2.0;
         
-        if (edge1 > edge2) {
-            rect.width = static_cast<int>(edge1);
-            rect.height = static_cast<int>(edge2);
+        if (avgLength1 > avgLength2) {
+            rect.width = static_cast<int>(avgLength1);
+            rect.height = static_cast<int>(avgLength2);
             rect.angle = std::atan2(edgeVectors[0].second, edgeVectors[0].first);
         } else {
-            rect.width = static_cast<int>(edge2);
-            rect.height = static_cast<int>(edge1);
+            rect.width = static_cast<int>(avgLength2);
+            rect.height = static_cast<int>(avgLength1);
             rect.angle = std::atan2(edgeVectors[1].second, edgeVectors[1].first);
         }
     }

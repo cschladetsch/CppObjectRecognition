@@ -8,7 +8,7 @@ A high-performance C++ computer vision application that detects rectangles in im
 
 ## Demo
 
-Rects could be rotated; in this demo image, they are not.
+Rects could be rotated; in this demo image, they are not. Other shapes are supported.
 
 ![Demo](resources/Demo.png)
 

@@ -44,6 +44,8 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Test")
     
     # Create test executable
     file(GLOB_RECURSE TEST_SOURCES "Test/*.cpp")
+    # Exclude TestPerformance.cpp from the test suite as it has its own main
+    list(REMOVE_ITEM TEST_SOURCES "${CMAKE_SOURCE_DIR}/Test/TestPerformance.cpp")
     if(TEST_SOURCES)
         # Remove main.cpp from library sources for tests
         set(LIB_SOURCES ${SOURCES})
@@ -64,5 +66,18 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Test")
         
         include(GoogleTest)
         gtest_discover_tests(tests)
+    endif()
+endif()
+
+# Performance test executable
+if(EXISTS "${CMAKE_SOURCE_DIR}/Test/TestPerformance.cpp")
+    set(PERF_SOURCES ${SOURCES})
+    list(REMOVE_ITEM PERF_SOURCES "${CMAKE_SOURCE_DIR}/Source/Main.cpp")
+    
+    add_executable(TestPerformance Test/TestPerformance.cpp ${PERF_SOURCES})
+    
+    # Link OpenMP if found
+    if(OpenMP_CXX_FOUND)
+        target_link_libraries(TestPerformance OpenMP::OpenMP_CXX)
     endif()
 endif()

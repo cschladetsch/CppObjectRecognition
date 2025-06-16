@@ -1,4 +1,6 @@
 #include "ShapeDetector/ImageProcessor.hpp"
+#include "ShapeDetector/RectangleDetector.hpp"  // This includes Sphere definition
+#include "ShapeDetector/SphereDetector.hpp"
 #include "Utils.hpp"
 #include <algorithm>
 #include <chrono>
@@ -141,6 +143,49 @@ ImageProcessor::CreateColorImage(const Image &grayImage,
   }
 
   return colorImage;
+}
+
+ColorImage
+ImageProcessor::CreateColorImageWithSpheres(const Image &grayImage,
+                                            const std::vector<Rectangle> &rectangles,
+                                            const std::vector<Sphere> &spheres) {
+  ColorImage colorImage(grayImage.width, grayImage.height);
+
+  // Convert grayscale to color (preserve all original pixel values)
+#pragma omp parallel for
+  for (int y = 0; y < grayImage.height; ++y) {
+    for (int x = 0; x < grayImage.width; ++x) {
+      unsigned char grayValue =
+          static_cast<unsigned char>(grayImage.pixels[y][x]);
+      colorImage.pixels[y][x] = ColorPixel(grayValue, grayValue, grayValue);
+    }
+  }
+
+  // Draw red rectangle boundaries
+  for (const auto &rect : rectangles) {
+    std::vector<Point> corners = GenerateRectangleCorners(rect);
+
+    for (size_t i = 0; i < 4; ++i) {
+      Point p1 = corners[i];
+      Point p2 = corners[(i + 1) % 4];
+
+      DrawThickColorLine(colorImage, p1, p2, ColorPixel(255, 0, 0), 4);
+    }
+  }
+
+  // Draw sphere boundaries
+  DrawSpheres(colorImage, spheres);
+
+  return colorImage;
+}
+
+void ImageProcessor::DrawSpheres(ColorImage &image,
+                                 const std::vector<Sphere> &spheres) {
+  for (const auto &sphere : spheres) {
+    // Draw sphere boundary in blue with thick lines
+    DrawThickColorCircle(image, sphere.center.x, sphere.center.y, sphere.radius,
+                         ColorPixel(0, 0, 255), 4);
+  }
 }
 
 Image ImageProcessor::ApplyThreshold(const Image &image, int threshold) {
@@ -364,6 +409,50 @@ void ImageProcessor::DrawThickColorLine(ColorImage &image, const Point &p1,
     newP2.y = static_cast<int>(p2.y + offset * perpY);
 
     DrawColorLine(image, newP1, newP2, color);
+  }
+}
+
+void ImageProcessor::DrawThickColorCircle(ColorImage &image, int centerX, int centerY,
+                                          int radius, const ColorPixel &color,
+                                          int thickness) {
+  int halfThickness = thickness / 2;
+  
+  // Draw multiple concentric circles to create thickness
+  for (int t = -halfThickness; t <= halfThickness; ++t) {
+    int r = radius + t;
+    if (r <= 0) continue;
+    
+    // Bresenham's circle algorithm for each thickness layer
+    int x = r;
+    int y = 0;
+    int err = 0;
+
+    while (x >= y) {
+      // Draw 8 octants
+      auto setPixel = [&](int px, int py) {
+        if (px >= 0 && px < image.width && py >= 0 && py < image.height) {
+          image.pixels[py][px] = color;
+        }
+      };
+
+      setPixel(centerX + x, centerY + y);
+      setPixel(centerX + y, centerY + x);
+      setPixel(centerX - y, centerY + x);
+      setPixel(centerX - x, centerY + y);
+      setPixel(centerX - x, centerY - y);
+      setPixel(centerX - y, centerY - x);
+      setPixel(centerX + y, centerY - x);
+      setPixel(centerX + x, centerY - y);
+
+      if (err <= 0) {
+        y += 1;
+        err += 2 * y + 1;
+      }
+      if (err > 0) {
+        x -= 1;
+        err -= 2 * x + 1;
+      }
+    }
   }
 }
 

@@ -30,10 +30,20 @@ public:
                            const std::string &filepath);
   static ColorImage CreateColorImage(const Image &grayImage,
                                      const std::vector<Rectangle> &rectangles);
+  static ColorImage CreateColorImageWithObloids(const Image &grayImage,
+                                                const std::vector<Rectangle> &rectangles,
+                                                const std::vector<Obloid> &obloids);
+  static ColorImage CreateColorImageWithSpheres(const Image &grayImage,
+                                                const std::vector<Rectangle> &rectangles,
+                                                const std::vector<Sphere> &spheres);
   static Image ApplyThreshold(const Image &image, int threshold = 127);
   static Image ApplyGaussianBlur(const Image &image, int kernelSize = 5);
   static void DrawRectangles(Image &image,
                              const std::vector<Rectangle> &rectangles);
+  static void DrawObloids(ColorImage &image,
+                          const std::vector<Obloid> &obloids);
+  static void DrawSpheres(ColorImage &image,
+                          const std::vector<Sphere> &spheres);
   static Image CreateTestImage(int width, int height);
   static Image CreateTestImageWithMixedShapes(int width, int height);
   static void DrawCircle(Image &image, int centerX, int centerY, int radius,
@@ -70,4 +80,7 @@ private:
   static void DrawThickColorLine(ColorImage &image, const Point &p1,
                                  const Point &p2, const ColorPixel &color,
                                  int thickness);
+  static void DrawThickColorCircle(ColorImage &image, int centerX, int centerY,
+                                   int radius, const ColorPixel &color,
+                                   int thickness);
 };

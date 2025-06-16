@@ -16,6 +16,18 @@ struct Rectangle {
   double angle; // angle in radians
 };
 
+struct Obloid {
+  Point center;
+  int radius;
+  double confidence; // detection confidence score
+};
+
+struct Sphere {
+  Point center;
+  int radius;
+  double confidence; // detection confidence score
+};
+
 struct Image {
   std::vector<std::vector<int>> pixels;
   int width, height;

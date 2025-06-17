@@ -2,7 +2,7 @@
 
 A high-performance C++ computer vision application that detects multiple shapes (rectangles and obloids) in images using custom algorithms with **100% rotation invariance** and comprehensive visual testing capabilities.
 
-🚀 **VERIFIED PERFORMANCE**: 6,259+ pixels/ms • 25+ OpenMP parallel loops • 55/55 tests passed
+**VERIFIED PERFORMANCE**: 6,259+ pixels/ms • 25+ OpenMP parallel loops • 55/55 tests passed
 
 *Pure C++ implementation* - no external computer vision libraries required.
 
@@ -37,46 +37,46 @@ The system detects rectangles of any rotation angle and obloids (circles, ellips
 
 ```
 CppRectangleRecognition/
-├── Include/                          # 📁 Header files (See Include/Readme.md)
-│   ├── Readme.md                     # 📚 Include directory documentation  
+├── Include/                          # Header files (See Include/Readme.md)
+│   ├── Readme.md                     # Include directory documentation  
 │   ├── ShapeDetector/
-│   │   ├── ImageProcessor.hpp        # 🖼️ Image processing utilities
-│   │   ├── RectangleDetector.hpp     # 🔍 Rectangle detection algorithms
-│   │   └── SphereDetector.hpp        # 🔵 Sphere/obloid detection algorithms
-│   └── Utils.hpp                     # 🛠️ Utility structures and functions
-├── Source/                           # 📁 Implementation files (See Source/Readme.md)
-│   ├── Readme.md                     # 📚 Source directory documentation
-│   ├── ImageProcessor.cpp            # 🖼️ Image processing implementation
-│   ├── Main.cpp                      # 🚀 Main application entry point
-│   ├── RectangleDetector.cpp         # 🔍 Rectangle detection implementation
-│   ├── SphereDetector.cpp            # 🔵 Sphere/obloid detection implementation
-│   └── VisualTest.cpp                # 🎨 Visual testing suite
-├── Test/                             # 📁 Test suites (See Test/Readme.md)
-│   ├── Readme.md                     # 📚 Test directory documentation
-│   ├── TestAdvancedRectangleDetection.cpp  # 🧪 Advanced detection scenarios
-│   ├── TestComprehensiveRotation.cpp       # 🔄 100% rotation coverage tests
-│   ├── TestGeometry.cpp              # 📐 Geometry structure tests
-│   ├── TestImageProcessor.cpp        # 🖼️ Image processing tests
-│   ├── TestImageProcessorSpheres.cpp # 🔵 Sphere-specific image processing tests
-│   ├── TestMain.cpp                  # 🏃 Test runner
-│   ├── TestObloidIntegration.cpp     # 🔵 Obloid shape integration tests
-│   ├── TestPerformance.cpp           # ⚡ Performance benchmarks
-│   ├── TestRectangleDetector.cpp     # 🔍 Core rectangle detection tests
-│   ├── TestRobustness.cpp            # 💪 Robustness and edge case tests
-│   ├── TestRotatedRectangles.cpp     # 🔄 Rotation-specific tests
-│   └── TestSphereDetector.cpp        # 🔵 Sphere/obloid detection tests
-├── Output/                           # 📁 Generated executables and output
-│   ├── Images/                       # 🖼️ All PNG output images
-│   ├── CppRectangleRecognition       # 🚀 Main executable
-│   ├── tests                         # 🧪 Test suite executable
-│   ├── TestPerformance               # ⚡ Performance benchmark executable
-│   └── VisualTest                    # 🎨 Visual test executable
-├── build/                            # 🏗️ Build directory (generated)
-├── resources/                        # 📸 Demo images and resources
-├── b                                 # 🔨 Build script
-├── r                                 # ▶️ Run script  
-├── v                                 # 👀 Visual test script
-└── CMakeLists.txt                    # ⚙️ CMake configuration
+│   │   ├── ImageProcessor.hpp        # Image processing utilities
+│   │   ├── RectangleDetector.hpp     # Rectangle detection algorithms
+│   │   └── SphereDetector.hpp        # Sphere/obloid detection algorithms
+│   └── Utils.hpp                     # Utility structures and functions
+├── Source/                           # Implementation files (See Source/Readme.md)
+│   ├── Readme.md                     # Source directory documentation
+│   ├── ImageProcessor.cpp            # Image processing implementation
+│   ├── Main.cpp                      # Main application entry point
+│   ├── RectangleDetector.cpp         # Rectangle detection implementation
+│   ├── SphereDetector.cpp            # Sphere/obloid detection implementation
+│   └── VisualTest.cpp                # Visual testing suite
+├── Test/                             # Test suites (See Test/Readme.md)
+│   ├── Readme.md                     # Test directory documentation
+│   ├── TestAdvancedRectangleDetection.cpp  # Advanced detection scenarios
+│   ├── TestComprehensiveRotation.cpp       # 100% rotation coverage tests
+│   ├── TestGeometry.cpp              # Geometry structure tests
+│   ├── TestImageProcessor.cpp        # Image processing tests
+│   ├── TestImageProcessorSpheres.cpp # Sphere-specific image processing tests
+│   ├── TestMain.cpp                  # Test runner
+│   ├── TestObloidIntegration.cpp     # Obloid shape integration tests
+│   ├── TestPerformance.cpp           # Performance benchmarks
+│   ├── TestRectangleDetector.cpp     # Core rectangle detection tests
+│   ├── TestRobustness.cpp            # Robustness and edge case tests
+│   ├── TestRotatedRectangles.cpp     # Rotation-specific tests
+│   └── TestSphereDetector.cpp        # Sphere/obloid detection tests
+├── Output/                           # Generated executables and output
+│   ├── Images/                       # All PNG output images
+│   ├── CppRectangleRecognition       # Main executable
+│   ├── tests                         # Test suite executable
+│   ├── TestPerformance               # Performance benchmark executable
+│   └── VisualTest                    # Visual test executable
+├── build/                            # Build directory (generated)
+├── resources/                        # Demo images and resources
+├── b                                 # Build script
+├── r                                 # Run script  
+├── v                                 # Visual test script
+└── CMakeLists.txt                    # CMake configuration
 ```
 
 ## Directory Documentation
@@ -161,7 +161,7 @@ The rotated rectangles test includes:
 ## Algorithm Details
 
 ```
-🧠 DUAL SHAPE DETECTION ARCHITECTURE:
+DUAL SHAPE DETECTION ARCHITECTURE:
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           INPUT IMAGE                                   │
 │                                │                                        │
@@ -191,7 +191,7 @@ The rotated rectangles test includes:
 │    └──────────────────────────────────────────────────────┘          │
 │                    │                       │                           │
 │                    ▼                       ▼                           │
-│            ✅ Rectangles           ✅ Spheres/Obloids                  │
+│                Rectangles              Spheres/Obloids                  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -315,7 +315,7 @@ Testing with complex image (many small rectangles)...
 #### Performance Characteristics
 
 ```
-🚀 OPTIMIZATION IMPACT:
+OPTIMIZATION IMPACT:
 ┌─────────────────────────────────────────────────────────┐
 │ Feature                    │ Performance Impact        │
 ├─────────────────────────────────────────────────────────┤
@@ -328,16 +328,16 @@ Testing with complex image (many small rectangles)...
 └─────────────────────────────────────────────────────────┘
 ```
 
-- **🎯 Exceptional Throughput**: Up to 6,259 pixels/ms processing rate
-- **⚡ OpenMP Acceleration**: 25+ parallel loops for maximum performance
-- **🔧 Aggressive Optimization**: Forced Release builds with all optimizations
-- **📊 Perfect Scalability**: Maintains efficiency from 100×100 to 1600×1600 images
-- **🏆 Zero Dependencies**: Pure C++ with no external computer vision libraries
+- **Exceptional Throughput**: Up to 6,259 pixels/ms processing rate
+- **OpenMP Acceleration**: 25+ parallel loops for maximum performance
+- **Aggressive Optimization**: Forced Release builds with all optimizations
+- **Perfect Scalability**: Maintains efficiency from 100×100 to 1600×1600 images
+- **Zero Dependencies**: Pure C++ with no external computer vision libraries
 
 ## Performance Optimizations
 
 ```
-🔧 OPTIMIZATION STACK:
+OPTIMIZATION STACK:
 ┌─────────────────────────────────────────────────────────┐
 │ Level 1: Compiler Optimizations                        │
 │ ├─ -O3 (Maximum optimization)                          │
@@ -402,21 +402,21 @@ The application generates:
 
 ---
 
-## 🎯 **PROJECT STATUS: MISSION ACCOMPLISHED**
+## **PROJECT STATUS: MISSION ACCOMPLISHED**
 
 ```
-🏆 FINAL ACHIEVEMENT SUMMARY:
+FINAL ACHIEVEMENT SUMMARY:
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ ✅ DUAL SHAPE DETECTION (Rectangles + Obloids)                          │
-│ ✅ 100% ROTATION INVARIANCE (37/37 angles verified)                     │
-│ ✅ PERFECT SHAPE DISCRIMINATION (Filters out triangles, etc.)           │
-│ ✅ EXCEPTIONAL PERFORMANCE (6,259+ pixels/ms peak throughput)           │
-│ ✅ COMPREHENSIVE TESTING (55/55 tests passed)                           │
-│ ✅ OPENMP ACCELERATION (25+ parallel loops deployed)                    │
-│ ✅ PRODUCTION-READY (Forced Release builds, all optimizations active)  │
+│ DUAL SHAPE DETECTION (Rectangles + Obloids)                            │
+│ 100% ROTATION INVARIANCE (37/37 angles verified)                       │
+│ PERFECT SHAPE DISCRIMINATION (Filters out triangles, etc.)             │
+│ EXCEPTIONAL PERFORMANCE (6,259+ pixels/ms peak throughput)             │
+│ COMPREHENSIVE TESTING (55/55 tests passed)                             │
+│ OPENMP ACCELERATION (25+ parallel loops deployed)                      │
+│ PRODUCTION-READY (Forced Release builds, all optimizations active)     │
 └─────────────────────────────────────────────────────────────────────────┘
 
-🔬 VERIFIED CAPABILITIES:
+VERIFIED CAPABILITIES:
 • Rectangle detection with mathematical precision across all angles
 • Sphere/obloid detection including circles and ellipses
 • Real-time performance with sub-millisecond processing per shape
@@ -424,7 +424,7 @@ The application generates:
 • Scalable architecture supporting images from 100×100 to 1600×1600
 • Cross-platform compatibility with automatic image viewer integration
 
-🚀 READY FOR PRODUCTION DEPLOYMENT
+READY FOR PRODUCTION DEPLOYMENT
 ```
 
 ## License

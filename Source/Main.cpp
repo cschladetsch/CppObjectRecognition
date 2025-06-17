@@ -1,5 +1,6 @@
 #include "ShapeDetector/ImageProcessor.hpp"
 #include "ShapeDetector/RectangleDetector.hpp"
+#include "ShapeDetector/SphereDetector.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <fcntl.h>
@@ -12,8 +13,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-void processImage(RectangleDetector &detector, int testNumber,
-                  bool useMixedShapes = false) {
+void processImage(RectangleDetector &detector, SphereDetector &sphereDetector, 
+                  int testNumber, bool useMixedShapes = false) {
   std::cout << "\n=== Test " << testNumber << " ===\n";
   std::cout << "Creating test image with "
             << (useMixedShapes ? "mixed shapes" : "rectangles only") << "...\n";
@@ -23,8 +24,11 @@ void processImage(RectangleDetector &detector, int testNumber,
 
   std::cout << "Detecting rectangles...\n";
   std::vector<Rectangle> rectangles = detector.DetectRectangles(testImage);
+  
+  std::cout << "Detecting spheres...\n";
+  std::vector<Sphere> spheres = sphereDetector.DetectSpheres(testImage);
 
-  std::cout << "Found " << rectangles.size() << " rectangles:\n";
+  std::cout << "Found " << rectangles.size() << " rectangles and " << spheres.size() << " spheres:\n";
 
   for (size_t i = 0; i < rectangles.size(); ++i) {
     const Rectangle &rect = rectangles[i];
@@ -40,9 +44,18 @@ void processImage(RectangleDetector &detector, int testNumber,
     std::cout << "\n";
   }
 
-  std::cout << "Creating color output image with detected rectangles...\n";
+  for (size_t i = 0; i < spheres.size(); ++i) {
+    const Sphere &sphere = spheres[i];
+    std::cout << "Sphere " << (i + 1) << ":\n";
+    std::cout << "  Center: (" << sphere.center.x << ", " << sphere.center.y << ")\n";
+    std::cout << "  Radius: " << sphere.radius << "\n";
+    std::cout << "  Confidence: " << sphere.confidence << "\n";
+    std::cout << "\n";
+  }
+
+  std::cout << "Creating color output image with detected shapes...\n";
   ColorImage outputImage =
-      ImageProcessor::CreateColorImage(testImage, rectangles);
+      ImageProcessor::CreateColorImageWithSpheres(testImage, rectangles, spheres);
 
   std::cout << "Saving output image...\n";
   ImageProcessor::SavePNGImage(outputImage, "Output/Images/output.png");
@@ -116,8 +129,9 @@ char getChar() {
 }
 
 int main() {
-  std::cout << "Rectangle Detection System\n";
-  std::cout << "=========================\n";
+  std::cout << "Shape Detection System\n";
+  std::cout << "======================\n";
+  std::cout << "Detects rectangles (red outlines) and spheres (blue outlines)\n";
   std::cout << "Controls:\n";
   std::cout << "  SPACE - Generate new test with rectangles only\n";
   std::cout << "  M     - Generate new test with mixed shapes\n";
@@ -128,10 +142,16 @@ int main() {
   detector.SetMaxArea(8000.0);
   detector.SetApproxEpsilon(0.05);
 
+  SphereDetector sphereDetector;
+  sphereDetector.SetMinRadius(15);
+  sphereDetector.SetMaxRadius(80);
+  sphereDetector.SetCircularityThreshold(0.75);
+  sphereDetector.SetConfidenceThreshold(0.6);
+
   int testNumber = 1;
 
   // Generate initial test
-  processImage(detector, testNumber++);
+  processImage(detector, sphereDetector, testNumber++);
 
   while (true) {
     std::cout << "\nPress SPACE (rectangles), M (mixed shapes), or Q (quit): ";
@@ -141,9 +161,9 @@ int main() {
     std::cout << "\n";
 
     if (input == ' ') {
-      processImage(detector, testNumber++, false);
+      processImage(detector, sphereDetector, testNumber++, false);
     } else if (input == 'm' || input == 'M') {
-      processImage(detector, testNumber++, true);
+      processImage(detector, sphereDetector, testNumber++, true);
     } else if (input == 'q' || input == 'Q') {
       std::cout << "Exiting...\n";
       break;

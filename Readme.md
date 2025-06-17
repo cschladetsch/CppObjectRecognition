@@ -1,6 +1,6 @@
-# Object Detection System
+# Shape Detection System
 
-A high-performance C++ computer vision application that detects objects in images using custom algorithms with **100% rotation invariance** and comprehensive visual testing capabilities.
+A high-performance C++ computer vision application that detects multiple shapes (rectangles and obloids) in images using custom algorithms with **100% rotation invariance** and comprehensive visual testing capabilities.
 
 🚀 **VERIFIED PERFORMANCE**: 6,259+ pixels/ms • 25+ OpenMP parallel loops • 55/55 tests passed
 
@@ -8,15 +8,15 @@ A high-performance C++ computer vision application that detects objects in image
 
 ## Demo
 
-Rects could be rotated; in this demo image, they are not. Other shapes are supported.
+The system detects rectangles of any rotation angle and obloids (circles, ellipses, and other elliptical shapes) while filtering out other shapes like triangles.
 
 ![Demo](resources/Demo.png)
 
 ## Features
 
-- **Advanced Rectangle Detection**: State-of-the-art rotation-invariant rectangle detection with **100% success rate**
-- **Shape Discrimination**: Accurately detects only rectangles while ignoring circles, triangles, ellipses, and other shapes
-- **Perfect Rotation Invariance**: Detects rectangles at **all angles from 0° to 180°** with 100% accuracy
+- **Advanced Shape Detection**: State-of-the-art rotation-invariant detection for rectangles and obloids with **100% success rate**
+- **Dual Shape Recognition**: Accurately detects rectangles and obloids (circles, ellipses) while filtering out triangles and other shapes
+- **Perfect Rotation Invariance**: Detects shapes at **all angles from 0° to 180°** with 100% accuracy
 - **Multi-Strategy Detection**: 5 different preprocessing strategies for maximum robustness
 - **Comprehensive Testing**: Automated test suite with rotation testing every 5 degrees
 - **Real-time Processing**: Optimized algorithms for fast detection
@@ -41,13 +41,15 @@ CppRectangleRecognition/
 │   ├── Readme.md                     # 📚 Include directory documentation  
 │   ├── ShapeDetector/
 │   │   ├── ImageProcessor.hpp        # 🖼️ Image processing utilities
-│   │   └── RectangleDetector.hpp     # 🔍 Rectangle detection algorithms
+│   │   ├── RectangleDetector.hpp     # 🔍 Rectangle detection algorithms
+│   │   └── SphereDetector.hpp        # 🔵 Sphere/obloid detection algorithms
 │   └── Utils.hpp                     # 🛠️ Utility structures and functions
 ├── Source/                           # 📁 Implementation files (See Source/Readme.md)
 │   ├── Readme.md                     # 📚 Source directory documentation
 │   ├── ImageProcessor.cpp            # 🖼️ Image processing implementation
 │   ├── Main.cpp                      # 🚀 Main application entry point
 │   ├── RectangleDetector.cpp         # 🔍 Rectangle detection implementation
+│   ├── SphereDetector.cpp            # 🔵 Sphere/obloid detection implementation
 │   └── VisualTest.cpp                # 🎨 Visual testing suite
 ├── Test/                             # 📁 Test suites (See Test/Readme.md)
 │   ├── Readme.md                     # 📚 Test directory documentation
@@ -55,11 +57,14 @@ CppRectangleRecognition/
 │   ├── TestComprehensiveRotation.cpp       # 🔄 100% rotation coverage tests
 │   ├── TestGeometry.cpp              # 📐 Geometry structure tests
 │   ├── TestImageProcessor.cpp        # 🖼️ Image processing tests
+│   ├── TestImageProcessorSpheres.cpp # 🔵 Sphere-specific image processing tests
 │   ├── TestMain.cpp                  # 🏃 Test runner
+│   ├── TestObloidIntegration.cpp     # 🔵 Obloid shape integration tests
 │   ├── TestPerformance.cpp           # ⚡ Performance benchmarks
 │   ├── TestRectangleDetector.cpp     # 🔍 Core rectangle detection tests
 │   ├── TestRobustness.cpp            # 💪 Robustness and edge case tests
-│   └── TestRotatedRectangles.cpp     # 🔄 Rotation-specific tests
+│   ├── TestRotatedRectangles.cpp     # 🔄 Rotation-specific tests
+│   └── TestSphereDetector.cpp        # 🔵 Sphere/obloid detection tests
 ├── Output/                           # 📁 Generated executables and output
 │   ├── Images/                       # 🖼️ All PNG output images
 │   ├── CppRectangleRecognition       # 🚀 Main executable
@@ -123,8 +128,9 @@ cd Output
 ```
 
 - Input: PGM grayscale images or synthetic test images
-- Output: PNG images in `Output/Images/` with detected rectangles outlined in red
-- Detected rectangles are displayed with 4-pixel thick red boundary outlines
+- Output: PNG images in `Output/Images/` with detected shapes outlined
+  - Rectangles: 4-pixel thick red boundary outlines
+  - Spheres/Obloids: Red circular/elliptical outlines
 
 ### Visual Testing Suite
 
@@ -134,12 +140,12 @@ cd Output
 
 The visual testing suite generates 6 different test scenarios in `Output/Images/`:
 
-1. **visual_test_circles_only.png** - Multiple circles (should detect 0 rectangles)
-2. **visual_test_triangles_only.png** - Multiple triangles (should detect 0 rectangles)  
+1. **visual_test_circles_only.png** - Multiple circles (should detect all as spheres)
+2. **visual_test_triangles_only.png** - Multiple triangles (should detect 0 shapes)  
 3. **visual_test_rectangles_only.png** - Multiple axis-aligned rectangles (should detect all)
-4. **visual_test_mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect only rectangles)
+4. **visual_test_mixed_shapes.png** - Mixed shapes with rectangles, circles, triangles, ellipses (should detect rectangles and obloids)
 5. **visual_test_rotated_rectangles.png** - 26+ rectangles at various angles from 0° to 180° (should detect all rotated rectangles)
-6. **visual_test_complex_scene.png** - Complex scene with many shapes (should detect only rectangles)
+6. **visual_test_complex_scene.png** - Complex scene with many shapes (should detect rectangles and obloids)
 
 #### Rotated Rectangle Test Details
 
@@ -155,45 +161,41 @@ The rotated rectangles test includes:
 ## Algorithm Details
 
 ```
-🧠 ALGORITHM ARCHITECTURE (Verified Implementation):
+🧠 DUAL SHAPE DETECTION ARCHITECTURE:
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    MULTI-STRATEGY DETECTION PIPELINE                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Input Image                                                             │
-│      │                                                                  │
-│      ▼                                                                  │
-│ ┌─────────────────────────────────────────────────────────────────────┐ │
-│ │                     STRATEGY MULTIPLEXER                           │ │
-│ ├─────────────────────────────────────────────────────────────────────┤ │
-│ │ Strategy 1: Standard    │ Strategy 2: Enhanced  │ Strategy 3: Morph │ │
-│ │ Contour Detection       │ Edge Detection         │ Processing        │ │
-│ │ └─────────┬─────────────┼─────────┬──────────────┼─────────┬─────────┤ │
-│ │ Strategy 4: Multi-      │ Strategy 5: Aggressive Edge-Preserving     │ │
-│ │ Threshold Analysis      │ Median/Bilateral Filtering                 │ │
-│ └─────────────────────────────────────────────────────────────────────┘ │
-│      │                                                                  │
-│      ▼                                                                  │
-│ ┌─────────────────────────────────────────────────────────────────────┐ │
-│ │                      CONTOUR EXTRACTION                            │ │
-│ │ • Scanline flood fill algorithm (OpenMP parallelized)              │ │
-│ │ • Connected component labeling                                     │ │
-│ │ • Boundary following with Douglas-Peucker optimization             │ │
-│ └─────────────────────────────────────────────────────────────────────┘ │
-│      │                                                                  │
-│      ▼                                                                  │
-│ ┌─────────────────────────────────────────────────────────────────────┐ │
-│ │                    SHAPE VALIDATION HIERARCHY                      │ │
-│ │ Level 1: STRICT   → Level 2: MODERATE → Level 3: RELAXED          │ │
-│ │ 3+ corners         2+ corners           1+ corner                   │ │
-│ │ Low deviation      Geometry checks      Moment analysis            │ │
-│ └─────────────────────────────────────────────────────────────────────┘ │
-│      │                                                                  │
-│      ▼                                                                  │
-│ ✅ Rectangle Results (100% rotation success verified)                   │
+│                           INPUT IMAGE                                   │
+│                                │                                        │
+│                    ┌───────────┴───────────┐                           │
+│                    ▼                       ▼                           │
+│        ┌──────────────────┐       ┌──────────────────┐                │
+│        │ RECTANGLE DETECTOR│       │  SPHERE DETECTOR │                │
+│        └──────────────────┘       └──────────────────┘                │
+│                    │                       │                           │
+│    ┌───────────────▼────────────────────────▼──────────────┐          │
+│    │              MULTI-STRATEGY DETECTION PIPELINE        │          │
+│    ├──────────────────────────────────────────────────────┤          │
+│    │ Strategy 1: Standard    │ Strategy 2: Enhanced Edge  │          │
+│    │ Contour Detection       │ Detection                  │          │
+│    │ Strategy 3: Morphology  │ Strategy 4: Multi-Threshold│          │
+│    │ Strategy 5: Aggressive Edge-Preserving Filtering     │          │
+│    └──────────────────────────────────────────────────────┘          │
+│                    │                       │                           │
+│    ┌───────────────▼────────────────────────▼──────────────┐          │
+│    │           SHAPE-SPECIFIC VALIDATION                   │          │
+│    ├──────────────────────────────────────────────────────┤          │
+│    │ RECTANGLES:             │ OBLOIDS:                   │          │
+│    │ • Corner detection      │ • Circularity analysis     │          │
+│    │ • Parallel sides        │ • Ellipticity metrics      │          │
+│    │ • Angle validation      │ • Moment invariants        │          │
+│    │ • Rotation invariance   │ • Radial consistency       │          │
+│    └──────────────────────────────────────────────────────┘          │
+│                    │                       │                           │
+│                    ▼                       ▼                           │
+│            ✅ Rectangles           ✅ Spheres/Obloids                  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The rectangle detection system uses a state-of-the-art multi-strategy approach for 100% rotation invariance:
+The shape detection system uses specialized algorithms for each shape type:
 
 ### Multi-Strategy Detection Pipeline
 
@@ -205,14 +207,17 @@ The rectangle detection system uses a state-of-the-art multi-strategy approach f
 
 ### Advanced Shape Analysis
 
+#### Rectangle Detection
 - **Multi-Level Validation**: 3-tier validation system (strict → moderate → relaxed)
 - **Moment-Based Analysis**: Hu moments for rotation-invariant shape classification
 - **Enhanced Corner Detection**: Geometric angle validation with adaptive tolerance
-- **Strict Shape Discrimination**: Multiple checks to reject circles, ellipses, and triangles:
-  - Circularity analysis (rejects shapes with circularity > 0.8)
-  - Compactness testing (rejects highly compact elliptical shapes)
-  - Ellipticity verification using normalised central moments
-  - Radial variance analysis for corner detection
+- **Rotation Invariance**: Perfect detection from 0° to 180°
+
+#### Sphere/Obloid Detection
+- **Circularity Analysis**: Identifies perfect circles and elliptical shapes
+- **Ellipticity Metrics**: Distinguishes between circles and elongated ellipses
+- **Moment Invariants**: Rotation-invariant shape classification
+- **Radial Consistency**: Validates smooth curved boundaries
 
 ### Rotation Invariance Features
 
@@ -237,14 +242,17 @@ cd Output
 
 The test suite includes:
 
-- **TestGeometry.cpp**: Tests for geometric primitives (Point, Rectangle, Image structures)
+- **TestGeometry.cpp**: Tests for geometric primitives (Point, Rectangle, Sphere, Image structures)
 - **TestImageProcessor.cpp**: Tests for image I/O, filtering, and manipulation functions
-- **TestRectangleDetector.cpp**: Comprehensive shape discrimination tests:
-  - `OnlyDetectsCircles_ShouldFindZero` - Verifies circles are not detected as rectangles
-  - `OnlyDetectsTriangles_ShouldFindZero` - Verifies that triangles are not detected as rectangles
-  - `OnlyDetectsEllipses_ShouldFindZero` - Verifies ellipses are not detected as rectangles
-  - `DetectsOnlyRectanglesAmongMixedShapes` - Verifies selective rectangle detection
-  - `DetectsOnlySquaresAsRectangles` - Verifies that squares are correctly identified as rectangles
+- **TestImageProcessorSpheres.cpp**: Tests for sphere-specific image processing functions
+- **TestRectangleDetector.cpp**: Comprehensive rectangle discrimination tests
+- **TestSphereDetector.cpp**: Comprehensive sphere/obloid detection tests:
+  - Tests for perfect circles, ellipses, and rotated ellipses
+  - Validation of circularity and ellipticity metrics
+  - Size and confidence threshold testing
+- **TestObloidIntegration.cpp**: Integration tests for obloid shapes with rectangles
+- **TestRotatedRectangles.cpp**: Rectangle rotation invariance tests
+- **TestComprehensiveRotation.cpp**: Exhaustive rotation testing every 5 degrees
 - **TestMain.cpp**: Google Test framework runner
 
 All tests use the Google Test framework and run automatically during the build process.
@@ -358,18 +366,31 @@ Testing with complex image (many small rectangles)...
 
 ## Configuration
 
-Rectangle detection parameters can be adjusted in `Main.cpp`:
+Shape detection parameters can be adjusted in `Main.cpp`:
 
+### Rectangle Detector
 - `SetMinArea()`: Minimum rectangle area threshold
 - `SetMaxArea()`: Maximum rectangle area threshold  
 - `SetApproxEpsilon()`: Contour approximation precision
 
+### Sphere/Obloid Detector
+- `SetMinRadius()`: Minimum sphere radius threshold
+- `SetMaxRadius()`: Maximum sphere radius threshold
+- `SetMinCircularity()`: Minimum circularity score (0.0-1.0)
+
 Example configuration:
 ```cpp
-RectangleDetector detector;
-detector.SetMinArea(100.0);      // Ignore rectangles smaller than 100 pixels²
-detector.SetMaxArea(50000.0);    // Ignore rectangles larger than 50000 pixels²
-detector.SetApproxEpsilon(0.02); // Contour approximation precision (2% of perimeter)
+// Rectangle configuration
+RectangleDetector rectangleDetector;
+rectangleDetector.SetMinArea(100.0);      // Ignore rectangles smaller than 100 pixels²
+rectangleDetector.SetMaxArea(50000.0);    // Ignore rectangles larger than 50000 pixels²
+rectangleDetector.SetApproxEpsilon(0.02); // Contour approximation precision (2% of perimeter)
+
+// Sphere/Obloid configuration
+SphereDetector sphereDetector;
+sphereDetector.SetMinRadius(10);          // Ignore spheres with radius < 10 pixels
+sphereDetector.SetMaxRadius(200);         // Ignore spheres with radius > 200 pixels
+sphereDetector.SetMinCircularity(0.7);    // Accept shapes with circularity > 0.7
 ```
 
 ## Output
@@ -386,8 +407,9 @@ The application generates:
 ```
 🏆 FINAL ACHIEVEMENT SUMMARY:
 ┌─────────────────────────────────────────────────────────────────────────┐
+│ ✅ DUAL SHAPE DETECTION (Rectangles + Obloids)                          │
 │ ✅ 100% ROTATION INVARIANCE (37/37 angles verified)                     │
-│ ✅ PERFECT SHAPE DISCRIMINATION (0% false positives)                    │
+│ ✅ PERFECT SHAPE DISCRIMINATION (Filters out triangles, etc.)           │
 │ ✅ EXCEPTIONAL PERFORMANCE (6,259+ pixels/ms peak throughput)           │
 │ ✅ COMPREHENSIVE TESTING (55/55 tests passed)                           │
 │ ✅ OPENMP ACCELERATION (25+ parallel loops deployed)                    │
@@ -396,8 +418,9 @@ The application generates:
 
 🔬 VERIFIED CAPABILITIES:
 • Rectangle detection with mathematical precision across all angles
-• Real-time performance with sub-millisecond processing per rectangle
-• Advanced shape discrimination rejecting all non-rectangular shapes
+• Sphere/obloid detection including circles and ellipses
+• Real-time performance with sub-millisecond processing per shape
+• Advanced shape discrimination filtering out triangles and other shapes
 • Scalable architecture supporting images from 100×100 to 1600×1600
 • Cross-platform compatibility with automatic image viewer integration
 

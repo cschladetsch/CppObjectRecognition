@@ -6,14 +6,14 @@
 echo ""
 echo "Generated files:"
 if [[ -f "test_input.pbm" ]]; then
-    echo "- test_input.pbm ($(stat -f%z test_input.pbm 2>/dev/null || stat -c%s test_input.pbm) bytes)"
+    echo "✓ test_input.pbm ($(stat -f%z test_input.pbm 2>/dev/null || stat -c%s test_input.pbm) bytes)"
     if command -v identify &> /dev/null; then
         identify test_input.pbm
     fi
 fi
 
 if [[ -f "test_output.pbm" ]]; then
-    echo "- test_output.pbm ($(stat -f%z test_output.pbm 2>/dev/null || stat -c%s test_output.pbm) bytes)"
+    echo "✓ test_output.pbm ($(stat -f%z test_output.pbm 2>/dev/null || stat -c%s test_output.pbm) bytes)"
     if command -v identify &> /dev/null; then
         identify test_output.pbm
     fi
@@ -31,7 +31,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
             explorer.exe test_input.png 2>/dev/null &
             sleep 1
             explorer.exe test_output.png 2>/dev/null &
-            echo "- Opened both images in Windows viewer"
+            echo "✓ Opened both images in Windows viewer"
         fi
     fi
 fi

@@ -25,8 +25,8 @@ protected:
     int dx = x - sphere.center.x;
     int dy = y - sphere.center.y;
     double distance = sqrt(dx * dx + dy * dy);
-    double minDist = sphere.radius - thickness/2.0;
-    double maxDist = sphere.radius + thickness/2.0;
+    double minDist = sphere.radius - thickness;
+    double maxDist = sphere.radius + thickness;
     return distance >= minDist && distance <= maxDist;
   }
 };

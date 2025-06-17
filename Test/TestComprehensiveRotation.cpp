@@ -60,7 +60,7 @@ TEST_F(ComprehensiveRotationTest, TestEvery5Degrees) {
       successfulDetections++;
 
     std::cout << std::setw(3) << angle << "°\t" << (detected ? "YES" : "NO ")
-              << "\t\t" << (detected ? "✅" : "❌") << std::endl;
+              << "\t\t" << (detected ? "PASS" : "FAIL") << std::endl;
   }
 
   double successRate = (double)successfulDetections / totalTests * 100.0;
@@ -112,7 +112,7 @@ TEST_F(ComprehensiveRotationTest, TestProblematicAngles) {
   for (double angle : problematicAngles) {
     bool detected = TestAngle(angle);
     std::cout << "Angle " << std::setw(5) << angle
-              << "°: " << (detected ? "✅ DETECTED" : "❌ MISSED") << std::endl;
+              << "°: " << (detected ? "DETECTED" : "MISSED") << std::endl;
     if (detected)
       successCount++;
   }
@@ -141,7 +141,7 @@ TEST_F(ComprehensiveRotationTest, TestSteepAngleRange) {
       successCount++;
 
     std::cout << "Angle " << std::setw(3) << angle
-              << "°: " << (detected ? "✅" : "❌") << std::endl;
+              << "°: " << (detected ? "PASS" : "FAIL") << std::endl;
   }
 
   double steepAngleRate = (double)successCount / totalCount * 100.0;
@@ -235,11 +235,11 @@ TEST_F(ComprehensiveRotationTest, CompareWithBaseline) {
   std::cout << "Target performance (moment-based): >60%\n";
 
   if (currentPerformance > 60.0) {
-    std::cout << "🎉 EXCELLENT: Significantly above target!\n";
+    std::cout << "EXCELLENT: Significantly above target!\n";
   } else if (currentPerformance > 40.0) {
-    std::cout << "✅ GOOD: Above traditional baseline\n";
+    std::cout << "GOOD: Above traditional baseline\n";
   } else {
-    std::cout << "⚠️  NEEDS IMPROVEMENT: Below expectations\n";
+    std::cout << "NEEDS IMPROVEMENT: Below expectations\n";
   }
 
   // Should significantly outperform traditional methods

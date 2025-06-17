@@ -21,7 +21,7 @@ void CreateAndTestImage(const std::string &testName, Image testImage,
       ImageProcessor::CreateColorImage(testImage, rectangles);
 
   // Save the result as PNG
-  std::string filename = "Output/Images/visual_test_" + testName + ".png";
+  std::string filename = "../Output/Images/visual_test_" + testName + ".png";
   ImageProcessor::SavePNGImage(colorImage, filename);
 
   std::cout << testName << " (" << description << "):" << std::endl;

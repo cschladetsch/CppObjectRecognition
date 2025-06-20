@@ -2,6 +2,8 @@
 
 A high-performance computer vision application for detecting rectangles and spheres/obloids in images. Features rotation-invariant detection algorithms with comprehensive testing suite.
 
+[Demo](resources/Demo.png)
+
 ## Overview
 
 - **Dual Shape Detection**: Detects rectangles and spheres/obloids (circles, ellipses)
